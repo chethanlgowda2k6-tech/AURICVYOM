@@ -1,0 +1,413 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// -----------------------------------------------------------------------------
+// USER & AUTHENTICATION
+// -----------------------------------------------------------------------------
+enum Role {
+  USER
+  ADMIN
+}
+
+model User {
+  id                String          @id @default(uuid())
+  name              String
+  email             String          @unique
+  phone             String?
+  passwordHash      String
+  profileImage      String?
+  role              Role            @default(USER)
+  preferredCurrency String          @default("INR")
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  lastLoginAt       DateTime?
+
+  preferences       UserPreference?
+  refreshTokens     RefreshToken[]
+  savedTrips        SavedTrip[]
+  journalEntries    JournalEntry[]
+  reviews           Review[]
+  bookings          Booking[]
+  notifications     Notification[]
+}
+
+model UserPreference {
+  id                        String   @id @default(uuid())
+  userId                    String   @unique
+  user                      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  travelStyle               String?  // e.g., "Luxury & Nature"
+  budgetRange               String?
+  preferredRegions          String[]
+  preferredActivities       String[]
+  preferredAccommodationType String?
+  preferredTripDuration     Int?
+  preferredTransport        String?
+  foodPreferences           String?
+  adventureLevel            Int      @default(3) // 1-5
+  luxuryPreference          Int      @default(5) // 1-5
+  naturePreference          Int      @default(4) // 1-5
+  heritagePreference        Int      @default(4) // 1-5
+  beachPreference           Int      @default(3) // 1-5
+  wellnessPreference        Int      @default(3) // 1-5
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+// -----------------------------------------------------------------------------
+// GEOGRAPHY & DESTINATIONS
+// -----------------------------------------------------------------------------
+enum DestinationCategory {
+  TRENDING
+  WEEKEND_GETAWAY
+  HIDDEN_GEM
+  NATURE
+  ADVENTURE
+  BEACH
+  HERITAGE
+  WILDLIFE
+  WELLNESS
+  LUXURY
+}
+
+model State {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  code        String   @unique // e.g., "KA"
+  capital     String
+  region      String
+  description String?
+  image       String?
+  latitude    Float?
+  longitude   Float?
+  
+  destinations Destination[]
+}
+
+model Destination {
+  id              String   @id @default(uuid())
+  name            String   @unique
+  stateId         String
+  state           State    @relation(fields: [stateId], references: [id])
+  city            String?
+  description     String
+  heroImage       String
+  latitude        Float?
+  longitude       Float?
+  bestTimeToVisit String?
+  averageBudget   Int?
+  popularityScore Float    @default(4.5)
+  category        DestinationCategory @default(TRENDING)
+  featured        Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  attractions     Attraction[]
+  activities      Activity[]
+  cuisines        Cuisine[]
+  properties      Property[]
+  reviews         Review[]
+}
+
+model Attraction {
+  id            String      @id @default(uuid())
+  name          String
+  destinationId String
+  destination   Destination @relation(fields: [destinationId], references: [id], onDelete: Cascade)
+  description   String?
+  image         String?
+}
+
+model Activity {
+  id            String      @id @default(uuid())
+  name          String
+  destinationId String
+  destination   Destination @relation(fields: [destinationId], references: [id], onDelete: Cascade)
+  description   String?
+  price         Int?
+  image         String?
+}
+
+model Cuisine {
+  id            String      @id @default(uuid())
+  name          String
+  destinationId String
+  destination   Destination @relation(fields: [destinationId], references: [id], onDelete: Cascade)
+  description   String?
+}
+
+// -----------------------------------------------------------------------------
+// LUXURY STAYS
+// -----------------------------------------------------------------------------
+model Property {
+  id             String   @id @default(uuid())
+  name           String
+  description    String
+  location       String
+  destinationId  String
+  destination    Destination @relation(fields: [destinationId], references: [id])
+  propertyType   String   // e.g., "Palace", "Heritage", "Villa", "Jungle Lodge"
+  starRating     Float
+  pricePerNight  Int
+  currency       String   @default("INR")
+  latitude       Float?
+  longitude      Float?
+  checkInTime    String   @default("14:00")
+  checkOutTime   String   @default("11:00")
+  featured       Boolean  @default(false)
+  cancellationWindowDays Int @default(7)
+  cancellationPolicyDescription String @default("Free cancellation up to 7 days before check-in. 50% refund thereafter.")
+  
+  images         PropertyImage[]
+  rooms          Room[]
+  amenities      PropertyAmenity[]
+  reviews        Review[]
+  bookings       BookingItem[]
+}
+
+model PropertyImage {
+  id         String   @id @default(uuid())
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  url        String
+  isPrimary  Boolean  @default(false)
+}
+
+model Room {
+  id             String   @id @default(uuid())
+  propertyId     String
+  property       Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  name           String
+  description    String?
+  capacity       Int
+  pricePerNight  Int
+  availableCount Int      @default(1)
+  
+  availabilities Availability[]
+}
+
+model Amenity {
+  id         String   @id @default(uuid())
+  name       String   @unique
+  icon       String?
+  
+  properties PropertyAmenity[]
+}
+
+model PropertyAmenity {
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  amenityId  String
+  amenity    Amenity  @relation(fields: [amenityId], references: [id], onDelete: Cascade)
+
+  @@id([propertyId, amenityId])
+}
+
+model Availability {
+  id         String   @id @default(uuid())
+  roomId     String
+  room       Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  date       DateTime
+  price      Int
+  available  Boolean  @default(true)
+}
+
+// -----------------------------------------------------------------------------
+// AI ITINERARIES & SAVED TRIPS
+// -----------------------------------------------------------------------------
+model Trip {
+  id                      String   @id @default(uuid())
+  title                   String
+  destination             String
+  daysCount               Int
+  travelersCount          Int
+  travelStyle             String
+  targetBudget            Int?
+  estimatedTotal          Int?
+  accommodationPreference String?
+  transportPreference     String?
+  createdAt               DateTime @default(now())
+
+  days                    TripDay[]
+  savedBy                 SavedTrip[]
+}
+
+model TripDay {
+  id          String   @id @default(uuid())
+  tripId      String
+  trip        Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  dayIndex    Int
+  title       String
+  description String?
+
+  activities  TripActivity[]
+}
+
+model TripActivity {
+  id          String   @id @default(uuid())
+  tripDayId   String
+  tripDay     TripDay  @relation(fields: [tripDayId], references: [id], onDelete: Cascade)
+  time        String?
+  title       String
+  type        String?  // e.g., "stay", "activity", "dining"
+  description String?
+  price       Int?
+}
+
+model SavedTrip {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tripId     String
+  trip       Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  savedAt    DateTime @default(now())
+}
+
+// -----------------------------------------------------------------------------
+// EDITORIAL GAZETTE & TRAVEL JOURNAL
+// -----------------------------------------------------------------------------
+model JournalEntry {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  excerpt     String?
+  content     String
+  destination String?
+  travelDate  DateTime?
+  mood        String?
+  coverImage  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Review {
+  id            String       @id @default(uuid())
+  userId        String
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  propertyId    String?
+  property      Property?    @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  destinationId String?
+  destination   Destination? @relation(fields: [destinationId], references: [id], onDelete: Cascade)
+  bookingId     String?
+  isVerifiedStay Boolean     @default(false)
+  rating        Float
+  title         String?
+  comment       String
+  createdAt     DateTime     @default(now())
+}
+
+// -----------------------------------------------------------------------------
+// BOOKINGS & PAYMENTS
+// -----------------------------------------------------------------------------
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  FAILED
+}
+
+model Booking {
+  id            String        @id @default(uuid())
+  userId        String
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  totalAmount   Int
+  currency      String        @default("INR")
+  status        BookingStatus @default(PENDING)
+  voucherCode   String?       @unique
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  items         BookingItem[]
+  payment       Payment?
+}
+
+model BookingItem {
+  id            String    @id @default(uuid())
+  bookingId     String
+  booking       Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  itemType      String    // e.g., "STAY", "TRANSPORT", "ACTIVITY"
+  propertyId    String?
+  property      Property? @relation(fields: [propertyId], references: [id])
+  startDate     DateTime?
+  endDate       DateTime?
+  guests        Int?
+  price         Int
+}
+
+model Payment {
+  id            String    @id @default(uuid())
+  bookingId     String    @unique
+  booking       Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  provider      String    // e.g., "RAZORPAY", "STRIPE", "DEMO"
+  transactionId String?
+  amount        Int
+  currency      String
+  status        String    // e.g., "SUCCESS", "FAILED", "PENDING"
+  createdAt     DateTime  @default(now())
+}
+
+model Cancellation {
+  id            String    @id @default(uuid())
+  bookingId     String    @unique
+  reason        String
+  refundAmount  Int?
+  status        String    @default("PENDING")
+  createdAt     DateTime  @default(now())
+}
+
+// -----------------------------------------------------------------------------
+// NOTIFICATIONS
+// -----------------------------------------------------------------------------
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String   // e.g., "BOOKING", "ITINERARY", "REMINDER"
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+// -----------------------------------------------------------------------------
+// ANALYTICS
+// -----------------------------------------------------------------------------
+model AnalyticsEvent {
+  id        String   @id @default(uuid())
+  userId    String?
+  eventType String   // e.g., "VIEW_DESTINATION", "SEARCH", "BOOKING_START"
+  payload   Json?
+  createdAt DateTime @default(now())
+}
+
+// -----------------------------------------------------------------------------
+// REAL-TIME ROOM AVAILABILITY LOCKS & HOLDS
+// -----------------------------------------------------------------------------
+model RoomHold {
+  id          String   @id @default(uuid())
+  roomId      String?
+  propertyId  String
+  userId      String?
+  sessionId   String   // Unique client hold session ID
+  startDate   DateTime
+  endDate     DateTime
+  expiresAt   DateTime // Short-lived (e.g. 10 mins from creation)
+  createdAt   DateTime @default(now())
+
+  @@index([propertyId, startDate, endDate])
+  @@index([expiresAt])
+  @@index([sessionId])
+}

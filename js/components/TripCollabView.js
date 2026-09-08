@@ -1020,13 +1020,13 @@ function renderCreateTripModal() {
 
   modal.querySelector("#create-collab-trip-form")?.addEventListener("submit", async (e) => {
     e.preventDefault();
-    const name = (document.getElementById("trip-name-input") as HTMLInputElement).value;
-    const destination = (document.getElementById("trip-destination-select") as HTMLSelectElement).value;
-    const travelersCount = Number((document.getElementById("trip-travelers-input") as HTMLInputElement).value);
-    const startDate = (document.getElementById("trip-start-date") as HTMLInputElement).value;
-    const endDate = (document.getElementById("trip-end-date") as HTMLInputElement).value;
-    const targetBudget = (document.getElementById("trip-budget-input") as HTMLInputElement).value;
-    const coOwnerEmail = (document.getElementById("trip-coowner-email") as HTMLInputElement).value;
+    const name = document.getElementById("trip-name-input")?.value;
+    const destination = document.getElementById("trip-destination-select")?.value;
+    const travelersCount = Number(document.getElementById("trip-travelers-input")?.value || 1);
+    const startDate = document.getElementById("trip-start-date")?.value;
+    const endDate = document.getElementById("trip-end-date")?.value;
+    const targetBudget = document.getElementById("trip-budget-input")?.value;
+    const coOwnerEmail = document.getElementById("trip-coowner-email")?.value;
 
     const res = await appState.createCollabTrip({
       name,
@@ -1097,7 +1097,7 @@ function renderJoinTripModal() {
   modal.querySelector("#cancel-join-modal-btn")?.addEventListener("click", close);
 
   const previewMount = modal.querySelector("#join-preview-mount");
-  const codeInput = modal.querySelector("#join-invite-code-input") as HTMLInputElement;
+  const codeInput = modal.querySelector("#join-invite-code-input");
 
   modal.querySelector("#preview-code-btn")?.addEventListener("click", async () => {
     const code = codeInput.value.trim();
@@ -1133,7 +1133,7 @@ function renderJoinTripModal() {
 // =============================================================================
 // MODAL 3: ADD ITINERARY ITEM MODAL
 // =============================================================================
-function renderAddItineraryModal(tripId: string, defaultDay: number = 1, prefill?: any) {
+function renderAddItineraryModal(tripId, defaultDay = 1, prefill = null) {
   const modal = document.createElement("div");
   modal.className = "modal-overlay-backdrop active";
 
@@ -1217,14 +1217,14 @@ function renderAddItineraryModal(tripId: string, defaultDay: number = 1, prefill
 
   modal.querySelector("#add-itinerary-form")?.addEventListener("submit", async (e) => {
     e.preventDefault();
-    const dayNumber = Number((document.getElementById("itin-day") as HTMLInputElement).value);
-    const category = (document.getElementById("itin-category") as HTMLSelectElement).value;
-    const title = (document.getElementById("itin-title") as HTMLInputElement).value;
-    const location = (document.getElementById("itin-location") as HTMLInputElement).value;
-    const startTime = (document.getElementById("itin-start-time") as HTMLInputElement).value;
-    const endTime = (document.getElementById("itin-end-time") as HTMLInputElement).value;
-    const cost = (document.getElementById("itin-cost") as HTMLInputElement).value;
-    const description = (document.getElementById("itin-desc") as HTMLTextAreaElement).value;
+    const dayNumber = Number(document.getElementById("itin-day")?.value || 1);
+    const category = document.getElementById("itin-category")?.value;
+    const title = document.getElementById("itin-title")?.value;
+    const location = document.getElementById("itin-location")?.value;
+    const startTime = document.getElementById("itin-start-time")?.value;
+    const endTime = document.getElementById("itin-end-time")?.value;
+    const cost = document.getElementById("itin-cost")?.value;
+    const description = document.getElementById("itin-desc")?.value;
 
     const res = await appState.addCollabItineraryItem(tripId, {
       dayNumber,
@@ -1244,7 +1244,7 @@ function renderAddItineraryModal(tripId: string, defaultDay: number = 1, prefill
 // =============================================================================
 // MODAL 4: PIN NEW SAVED PLACE MODAL
 // =============================================================================
-function renderAddPlaceModal(tripId: string) {
+function renderAddPlaceModal(tripId) {
   const modal = document.createElement("div");
   modal.className = "modal-overlay-backdrop active";
 
@@ -1310,11 +1310,11 @@ function renderAddPlaceModal(tripId: string) {
 
   modal.querySelector("#add-place-form")?.addEventListener("submit", async (e) => {
     e.preventDefault();
-    const name = (document.getElementById("place-name") as HTMLInputElement).value;
-    const category = (document.getElementById("place-category") as HTMLSelectElement).value;
-    const rating = Number((document.getElementById("place-rating") as HTMLInputElement).value);
-    const address = (document.getElementById("place-address") as HTMLInputElement).value;
-    const notes = (document.getElementById("place-notes") as HTMLTextAreaElement).value;
+    const name = document.getElementById("place-name")?.value;
+    const category = document.getElementById("place-category")?.value;
+    const rating = Number(document.getElementById("place-rating")?.value || 5);
+    const address = document.getElementById("place-address")?.value;
+    const notes = document.getElementById("place-notes")?.value;
 
     const res = await appState.addCollabSavedPlace(tripId, {
       name,
@@ -1331,7 +1331,7 @@ function renderAddPlaceModal(tripId: string) {
 // =============================================================================
 // MODAL 5: CREATE SQUAD POLL (OWNERS ONLY)
 // =============================================================================
-function renderCreatePollModal(tripId: string) {
+function renderCreatePollModal(tripId) {
   const modal = document.createElement("div");
   modal.className = "modal-overlay-backdrop active";
 
@@ -1391,8 +1391,8 @@ function renderCreatePollModal(tripId: string) {
 
   modal.querySelector("#create-poll-form")?.addEventListener("submit", async (e) => {
     e.preventDefault();
-    const question = (document.getElementById("poll-question") as HTMLInputElement).value;
-    const optionInputs = modal.querySelectorAll(".poll-option-input") as NodeListOf<HTMLInputElement>;
+    const question = document.getElementById("poll-question")?.value;
+    const optionInputs = modal.querySelectorAll(".poll-option-input");
     const options = Array.from(optionInputs).map(inp => inp.value.trim()).filter(Boolean);
 
     if (options.length < 2) {
@@ -1408,7 +1408,7 @@ function renderCreatePollModal(tripId: string) {
 // =============================================================================
 // MODAL 6: ADD GROUP EXPENSE MODAL
 // =============================================================================
-function renderAddExpenseModal(tripId: string, members: any[]) {
+function renderAddExpenseModal(tripId, members = []) {
   const modal = document.createElement("div");
   modal.className = "modal-overlay-backdrop active";
 
@@ -1475,10 +1475,10 @@ function renderAddExpenseModal(tripId: string, members: any[]) {
 
   modal.querySelector("#add-expense-form")?.addEventListener("submit", async (e) => {
     e.preventDefault();
-    const amount = Number((document.getElementById("exp-amount") as HTMLInputElement).value);
-    const category = (document.getElementById("exp-category") as HTMLSelectElement).value;
-    const description = (document.getElementById("exp-desc") as HTMLInputElement).value;
-    const checked = modal.querySelectorAll(".exp-member-split:checked") as NodeListOf<HTMLInputElement>;
+    const amount = Number(document.getElementById("exp-amount")?.value || 0);
+    const category = document.getElementById("exp-category")?.value;
+    const description = document.getElementById("exp-desc")?.value;
+    const checked = modal.querySelectorAll(".exp-member-split:checked");
     const splitBetweenMemberIds = Array.from(checked).map(c => c.value);
 
     const res = await appState.createCollabExpense(tripId, {
@@ -1495,14 +1495,14 @@ function renderAddExpenseModal(tripId: string, members: any[]) {
 // =============================================================================
 // MODAL 7: MANAGE SQUAD & TWO CO-OWNERS INVARIANT TRANSFER
 // =============================================================================
-function renderManageSquadModal(trip: any) {
+function renderManageSquadModal(trip) {
   const modal = document.createElement("div");
   modal.className = "modal-overlay-backdrop active";
 
   const members = trip.members || [];
   const currentUserId = appState.getState().currentUser?.id;
   const isCallerOwner = trip.userRole === 'OWNER';
-  const otherMembers = members.filter((m: any) => m.userId !== currentUserId && m.role === 'MEMBER');
+  const otherMembers = members.filter(m => m.userId !== currentUserId && m.role === 'MEMBER');
 
   modal.innerHTML = `
     <div class="modal-window-container" style="max-width: 580px; padding: 32px;">
@@ -1529,7 +1529,7 @@ function renderManageSquadModal(trip: any) {
           Current Squad Roster (${members.length})
         </div>
         <div style="display: flex; flex-direction: column; gap: 8px;">
-          ${members.map((m: any) => {
+          ${members.map(m => {
             const isOwner = m.role === 'OWNER';
             return `
               <div style="background: rgba(8,12,20,0.85); border: 1px solid ${isOwner ? 'var(--border-gold)' : 'var(--border-subtle)'}; border-radius: var(--radius-md); padding: 12px 16px; display: flex; justify-content: space-between; align-items: center;">
@@ -1571,7 +1571,7 @@ function renderManageSquadModal(trip: any) {
           ${otherMembers.length > 0 ? `
             <div style="display: flex; gap: 10px;">
               <select id="transfer-target-user-select" style="flex-grow: 1; background: #080c14; border: 1px solid var(--border-gold); border-radius: var(--radius-md); padding: 10px; color: #fff; font-size: 0.9rem;">
-                ${otherMembers.map((m: any) => `
+                ${otherMembers.map(m => `
                   <option value="${m.userId}">${m.user?.name} (${m.user?.email})</option>
                 `).join('')}
               </select>
@@ -1603,8 +1603,8 @@ function renderManageSquadModal(trip: any) {
 
   modal.querySelectorAll(".remove-squad-member-btn").forEach(btn => {
     btn.addEventListener("click", async () => {
-      const uId = (btn as HTMLElement).dataset.userId!;
-      const uName = (btn as HTMLElement).dataset.userName;
+      const uId = btn.dataset.userId;
+      const uName = btn.dataset.userName;
       if (confirm(`Remove ${uName} from the collaborative trip?`)) {
         const ok = await appState.removeCollabMember(trip.id, uId);
         if (ok) close();
@@ -1613,7 +1613,7 @@ function renderManageSquadModal(trip: any) {
   });
 
   modal.querySelector("#confirm-transfer-btn")?.addEventListener("click", async () => {
-    const sel = modal.querySelector("#transfer-target-user-select") as HTMLSelectElement;
+    const sel = modal.querySelector("#transfer-target-user-select");
     if (!sel) return;
     const targetUserId = sel.value;
     if (confirm("Are you sure? You will step down to Member and the selected user will become Co-Owner.")) {

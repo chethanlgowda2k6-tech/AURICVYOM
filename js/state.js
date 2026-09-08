@@ -141,6 +141,13 @@ class StateManager {
       travelStories: savedStories,
       reviews: savedReviews,
 
+      // Collaborative Trips State
+      collabTrips: [],
+      currentCollabTrip: null,
+      collabSettlement: null,
+      collabLoading: false,
+      activeCollabWorkspaceTab: 'itinerary', // 'itinerary', 'places', 'polls', 'expenses', 'chat'
+
       // Discovery Filters
       filterRegion: "all",
       exploreCategory: "trending",
@@ -844,6 +851,500 @@ class StateManager {
       Math.sin(dLon / 2) * Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return Math.round(R * c);
+  }
+
+  // ===========================================================================
+  // TEAM-BASED TRIP COLLABORATION STORE & API INTEGRATION
+  // ===========================================================================
+
+  setActiveCollabWorkspaceTab(tab) {
+    this.setState({ activeCollabWorkspaceTab: tab });
+  }
+
+  setCurrentCollabTrip(trip) {
+    this.setState({ currentCollabTrip: trip });
+  }
+
+  getAuthHeaders() {
+    const token = authService.getStoredToken();
+    return {
+      "Content-Type": "application/json",
+      ...(token ? { "Authorization": `Bearer ${token}` } : {})
+    };
+  }
+
+  async fetchCollabTrips() {
+    this.setState({ collabLoading: true });
+    try {
+      const apiBase = window.AURICVYOM_API_BASE || "http://localhost:5001/api/v1";
+      const res = await fetch(`${apiBase}/trips`, {
+        headers: this.getAuthHeaders()
+      });
+      const data = await res.json();
+      if (data.success) {
+        this.setState({ collabTrips: data.data, collabLoading: false });
+        return data.data;
+      }
+    } catch (err) {
+      console.warn("[CollabTrips] fetchCollabTrips failed, using cache if available:", err);
+    }
+    this.setState({ collabLoading: false });
+    return this.state.collabTrips;
+  }
+
+  async fetchCollabTripDetails(tripId) {
+    try {
+      const apiBase = window.AURICVYOM_API_BASE || "http://localhost:5001/api/v1";
+      const res = await fetch(`${apiBase}/trips/${tripId}`, {
+        headers: this.getAuthHeaders()
+      });
+      const data = await res.json();
+      if (data.success) {
+        this.setState({ currentCollabTrip: data.data });
+        this.initCollabSSE(tripId);
+        this.fetchCollabSettlement(tripId);
+        return data.data;
+      } else {
+        this.showToast(data.message || "Failed to load collaborative trip");
+      }
+    } catch (err) {
+      console.error("[CollabTrips] fetchCollabTripDetails error:", err);
+      this.showToast("Connection to trip server failed");
+    }
+    return null;
+  }
+
+  async createCollabTrip(payload) {
+    try {
+      const apiBase = window.AURICVYOM_API_BASE || "http://localhost:5001/api/v1";
+      const res = await fetch(`${apiBase}/trips`, {
+        method: "POST",
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (data.success) {
+        this.showToast("✨ Collaborative trip created! Invite code ready.");
+        await this.fetchCollabTrips();
+        return data.data;
+      } else {
+        this.showToast(data.message || "Failed to create trip");
+        return null;
+      }
+    } catch (err) {
+      console.error("[CollabTrips] createCollabTrip error:", err);
+      this.showToast("Network error creating trip");
+      return null;
+    }
+  }
+
+  async previewInviteCode(code) {
+    try {
+      const apiBase = window.AURICVYOM_API_BASE || "http://localhost:5001/api/v1";
+      const res = await fetch(`${apiBase}/trips/preview/${encodeURIComponent(code)}`);
+      return await res.json();
+    } catch (err) {
+      return { success: false, message: "Could not preview invite code" };
+    }
+  }
+
+  async joinCollabTrip(inviteCode) {
+    try {
+      const apiBase = window.AURICVYOM_API_BASE || "http://localhost:5001/api/v1";
+      const res = await fetch(`${apiBase}/trips/join`, {
+        method: "POST",
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify({ inviteCode })
+      });
+      const data = await res.json();
+      if (data.success) {
+        this.showToast("🎉 " + data.message);
+        await this.fetchCollabTrips();
+        if (data.data?.tripId) {
+          await this.fetchCollabTripDetails(data.data.tripId);
+        }
+        return data;
+      } else {
+        this.showToast(data.message || "Failed to join trip");
+        return null;
+      }
+    } catch (err) {
+      console.error("[CollabTrips] joinCollabTrip error:", err);
+      this.showToast("Network error joining trip");
+      return null;
+    }
+  }
+
+  async transferCollabOwnership(tripId, toUserId) {
+    try {
+      const apiBase = window.AURICVYOM_API_BASE || "http://localhost:5001/api/v1";
+      const res = await fetch(`${apiBase}/trips/${tripId}/transfer-ownership`, {
+        method: "POST",
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify({ toUserId })
+      });
+      const data = await res.json();
+      if (data.success) {
+        this.showToast("👑 " + data.message);
+        await this.fetchCollabTripDetails(tripId);
+        return true;
+      } else {
+        this.showToast(data.message || "Failed to transfer ownership");
+        return false;
+      }
+    } catch (err) {
+      this.showToast("Error transferring ownership");
+      return false;
+    }
+  }
+
+  async removeCollabMember(tripId, memberUserId) {
+    try {
+      const apiBase = window.AURICVYOM_API_BASE || "http://localhost:5001/api/v1";
+      const res = await fetch(`${apiBase}/trips/${tripId}/members/${memberUserId}`, {
+        method: "DELETE",
+        headers: this.getAuthHeaders()
+      });
+      const data = await res.json();
+      if (data.success) {
+        this.showToast("Member removed from trip");
+        await this.fetchCollabTripDetails(tripId);
+        return true;
+      } else {
+        this.showToast(data.message || "Failed to remove member");
+        return false;
+      }
+    } catch (err) {
+      this.showToast("Error removing member");
+      return false;
+    }
+  }
+
+  async leaveCollabTrip(tripId) {
+    try {
+      const apiBase = window.AURICVYOM_API_BASE || "http://localhost:5001/api/v1";
+      const res = await fetch(`${apiBase}/trips/${tripId}/leave`, {
+        method: "POST",
+        headers: this.getAuthHeaders()
+      });
+      const data = await res.json();
+      if (data.success) {
+        this.showToast(data.message);
+        this.setState({ currentCollabTrip: null });
+        this.closeCollabSSE();
+        await this.fetchCollabTrips();
+        return true;
+      } else {
+        this.showToast(data.message || "Cannot leave trip");
+        return false;
+      }
+    } catch (err) {
+      this.showToast("Error leaving trip");
+      return false;
+    }
+  }
+
+  async addCollabItineraryItem(tripId, item) {
+    try {
+      const apiBase = window.AURICVYOM_API_BASE || "http://localhost:5001/api/v1";
+      const res = await fetch(`${apiBase}/trips/${tripId}/itinerary`, {
+        method: "POST",
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify(item)
+      });
+      const data = await res.json();
+      if (data.success) {
+        this.showToast("Added to itinerary");
+        return data.data;
+      } else {
+        this.showToast(data.message || "Could not add item");
+      }
+    } catch (err) {
+      this.showToast("Failed to add itinerary item");
+    }
+  }
+
+  async updateCollabItineraryItem(tripId, itemId, item) {
+    try {
+      const apiBase = window.AURICVYOM_API_BASE || "http://localhost:5001/api/v1";
+      const res = await fetch(`${apiBase}/trips/${tripId}/itinerary/${itemId}`, {
+        method: "PUT",
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify(item)
+      });
+      const data = await res.json();
+      if (data.success) {
+        this.showToast("Itinerary item updated");
+        return data.data;
+      }
+    } catch (err) {
+      this.showToast("Failed to update item");
+    }
+  }
+
+  async deleteCollabItineraryItem(tripId, itemId) {
+    try {
+      const apiBase = window.AURICVYOM_API_BASE || "http://localhost:5001/api/v1";
+      const res = await fetch(`${apiBase}/trips/${tripId}/itinerary/${itemId}`, {
+        method: "DELETE",
+        headers: this.getAuthHeaders()
+      });
+      const data = await res.json();
+      if (data.success) {
+        this.showToast("Item deleted from itinerary");
+        return true;
+      }
+    } catch (err) {
+      this.showToast("Failed to delete item");
+    }
+  }
+
+  async addCollabSavedPlace(tripId, place) {
+    try {
+      const apiBase = window.AURICVYOM_API_BASE || "http://localhost:5001/api/v1";
+      const res = await fetch(`${apiBase}/trips/${tripId}/places`, {
+        method: "POST",
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify(place)
+      });
+      const data = await res.json();
+      if (data.success) {
+        this.showToast("Place saved to shared trip");
+        return data.data;
+      }
+    } catch (err) {
+      this.showToast("Failed to save place");
+    }
+  }
+
+  async deleteCollabSavedPlace(tripId, placeId) {
+    try {
+      const apiBase = window.AURICVYOM_API_BASE || "http://localhost:5001/api/v1";
+      const res = await fetch(`${apiBase}/trips/${tripId}/places/${placeId}`, {
+        method: "DELETE",
+        headers: this.getAuthHeaders()
+      });
+      const data = await res.json();
+      if (data.success) {
+        this.showToast("Place removed");
+        return true;
+      }
+    } catch (err) {
+      this.showToast("Failed to remove place");
+    }
+  }
+
+  async createCollabPoll(tripId, pollData) {
+    try {
+      const apiBase = window.AURICVYOM_API_BASE || "http://localhost:5001/api/v1";
+      const res = await fetch(`${apiBase}/trips/${tripId}/polls`, {
+        method: "POST",
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify(pollData)
+      });
+      const data = await res.json();
+      if (data.success) {
+        this.showToast("📊 Poll created!");
+        return data.data;
+      } else {
+        this.showToast(data.message || "Failed to create poll");
+      }
+    } catch (err) {
+      this.showToast("Error creating poll");
+    }
+  }
+
+  async voteCollabPoll(tripId, pollId, optionId) {
+    try {
+      const apiBase = window.AURICVYOM_API_BASE || "http://localhost:5001/api/v1";
+      const res = await fetch(`${apiBase}/trips/${tripId}/polls/${pollId}/vote`, {
+        method: "POST",
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify({ optionId })
+      });
+      const data = await res.json();
+      if (data.success) {
+        return data.data;
+      }
+    } catch (err) {
+      console.error("[CollabTrips] voteCollabPoll error:", err);
+    }
+  }
+
+  async closeCollabPoll(tripId, pollId) {
+    try {
+      const apiBase = window.AURICVYOM_API_BASE || "http://localhost:5001/api/v1";
+      const res = await fetch(`${apiBase}/trips/${tripId}/polls/${pollId}/close`, {
+        method: "PUT",
+        headers: this.getAuthHeaders()
+      });
+      const data = await res.json();
+      if (data.success) {
+        this.showToast("Poll closed");
+        return data.data;
+      }
+    } catch (err) {
+      this.showToast("Error closing poll");
+    }
+  }
+
+  async createCollabExpense(tripId, expenseData) {
+    try {
+      const apiBase = window.AURICVYOM_API_BASE || "http://localhost:5001/api/v1";
+      const res = await fetch(`${apiBase}/trips/${tripId}/expenses`, {
+        method: "POST",
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify(expenseData)
+      });
+      const data = await res.json();
+      if (data.success) {
+        this.showToast("💰 Expense added & split computed!");
+        this.fetchCollabSettlement(tripId);
+        return data.data;
+      } else {
+        this.showToast(data.message || "Failed to record expense");
+      }
+    } catch (err) {
+      this.showToast("Error recording expense");
+    }
+  }
+
+  async updateCollabExpense(tripId, expenseId, expenseData) {
+    try {
+      const apiBase = window.AURICVYOM_API_BASE || "http://localhost:5001/api/v1";
+      const res = await fetch(`${apiBase}/trips/${tripId}/expenses/${expenseId}`, {
+        method: "PUT",
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify(expenseData)
+      });
+      const data = await res.json();
+      if (data.success) {
+        this.showToast("Expense updated");
+        this.fetchCollabSettlement(tripId);
+        return data.data;
+      }
+    } catch (err) {
+      this.showToast("Error updating expense");
+    }
+  }
+
+  async deleteCollabExpense(tripId, expenseId) {
+    try {
+      const apiBase = window.AURICVYOM_API_BASE || "http://localhost:5001/api/v1";
+      const res = await fetch(`${apiBase}/trips/${tripId}/expenses/${expenseId}`, {
+        method: "DELETE",
+        headers: this.getAuthHeaders()
+      });
+      const data = await res.json();
+      if (data.success) {
+        this.showToast("Expense soft-deleted (logged in financial audit)");
+        this.fetchCollabSettlement(tripId);
+        return true;
+      }
+    } catch (err) {
+      this.showToast("Error deleting expense");
+    }
+  }
+
+  async fetchCollabSettlement(tripId) {
+    try {
+      const apiBase = window.AURICVYOM_API_BASE || "http://localhost:5001/api/v1";
+      const res = await fetch(`${apiBase}/trips/${tripId}/expenses/settlement`, {
+        headers: this.getAuthHeaders()
+      });
+      const data = await res.json();
+      if (data.success) {
+        this.setState({ collabSettlement: data.data });
+        return data.data;
+      }
+    } catch (err) {
+      console.warn("[CollabTrips] fetchCollabSettlement error:", err);
+    }
+  }
+
+  async sendCollabMessage(tripId, text) {
+    try {
+      const apiBase = window.AURICVYOM_API_BASE || "http://localhost:5001/api/v1";
+      const res = await fetch(`${apiBase}/trips/${tripId}/messages`, {
+        method: "POST",
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify({ text })
+      });
+      const data = await res.json();
+      if (data.success) {
+        return data.data;
+      }
+    } catch (err) {
+      this.showToast("Error sending message");
+    }
+  }
+
+  initCollabSSE(tripId) {
+    this.closeCollabSSE();
+
+    const token = authService.getStoredToken();
+    const apiBase = window.AURICVYOM_API_BASE || "http://localhost:5001/api/v1";
+    const sseUrl = `${apiBase}/trips/${tripId}/events?token=${encodeURIComponent(token || "")}`;
+
+    try {
+      this.collabEventSource = new EventSource(sseUrl);
+
+      const refreshTrip = () => {
+        if (this.state.currentCollabTrip?.id === tripId) {
+          this.fetchCollabTripDetails(tripId);
+        }
+      };
+
+      this.collabEventSource.addEventListener("ITINERARY_ITEM_ADDED", refreshTrip);
+      this.collabEventSource.addEventListener("ITINERARY_ITEM_UPDATED", refreshTrip);
+      this.collabEventSource.addEventListener("ITINERARY_ITEM_DELETED", refreshTrip);
+      this.collabEventSource.addEventListener("PLACE_ADDED", refreshTrip);
+      this.collabEventSource.addEventListener("PLACE_DELETED", refreshTrip);
+      this.collabEventSource.addEventListener("POLL_CREATED", refreshTrip);
+      this.collabEventSource.addEventListener("POLL_VOTED", refreshTrip);
+      this.collabEventSource.addEventListener("POLL_CLOSED", refreshTrip);
+      this.collabEventSource.addEventListener("EXPENSE_ADDED", refreshTrip);
+      this.collabEventSource.addEventListener("EXPENSE_UPDATED", refreshTrip);
+      this.collabEventSource.addEventListener("EXPENSE_DELETED", refreshTrip);
+      this.collabEventSource.addEventListener("MEMBER_JOINED", refreshTrip);
+      this.collabEventSource.addEventListener("OWNERSHIP_TRANSFERRED", refreshTrip);
+      this.collabEventSource.addEventListener("MEMBER_REMOVED", refreshTrip);
+      this.collabEventSource.addEventListener("MEMBER_LEFT", refreshTrip);
+      this.collabEventSource.addEventListener("TRIP_UPDATED", refreshTrip);
+
+      this.collabEventSource.addEventListener("NEW_CHAT_MESSAGE", (e) => {
+        try {
+          const parsed = JSON.parse(e.data);
+          const msg = parsed.payload;
+          if (this.state.currentCollabTrip && msg) {
+            const currentMsgs = this.state.currentCollabTrip.messages || [];
+            if (!currentMsgs.some(m => m.id === msg.id)) {
+              this.setState({
+                currentCollabTrip: {
+                  ...this.state.currentCollabTrip,
+                  messages: [...currentMsgs, msg]
+                }
+              });
+            }
+          }
+        } catch (err) {}
+      });
+
+      this.collabEventSource.onerror = () => {
+        // EventSource will auto-reconnect
+      };
+    } catch (err) {
+      console.warn("[CollabTrips] SSE connection error:", err);
+    }
+  }
+
+  closeCollabSSE() {
+    if (this.collabEventSource) {
+      try {
+        this.collabEventSource.close();
+      } catch (e) {}
+      this.collabEventSource = null;
+    }
   }
 }
 

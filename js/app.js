@@ -26,6 +26,7 @@ import { renderAuthView } from "./components/AuthView.js";
 import { renderGlobalSearchModal } from "./components/GlobalSearchModal.js";
 import { renderAdminDashboardView } from "./components/AdminDashboardView.js";
 import { renderNadiaFloatingWidget } from "./components/NadiaFloatingWidget.js";
+import { renderTripCollabView } from "./components/TripCollabView.js";
 import { renderFooter } from "./components/Footer.js";
 
 class AuricVistaApp {
@@ -68,7 +69,7 @@ class AuricVistaApp {
       appState.openAuth("reset");
     } else if (hash === "personalization") {
       appState.openAuth("personalization");
-    } else if (hash && ["home", "explore", "destinations", "stays", "experiences", "transport", "flights", "packages", "planner", "journal", "dashboard", "ai_planner", "saved", "bookings"].includes(hash)) {
+    } else if (hash && ["home", "explore", "destinations", "stays", "experiences", "transport", "flights", "packages", "planner", "journal", "dashboard", "ai_planner", "saved", "bookings", "collab", "collaborate", "team_trips"].includes(hash)) {
       appState.setActiveTab(hash);
     }
   }
@@ -116,6 +117,7 @@ class AuricVistaApp {
           <button class="nav-link-btn" data-nav="packages" style="text-align: left; font-size: 1.05rem; min-height: 44px; display: flex; align-items: center;">Holidays</button>
           <button class="nav-link-btn" data-nav="explore" style="text-align: left; font-size: 1.05rem; min-height: 44px; display: flex; align-items: center;">Explore India</button>
           <button class="nav-link-btn" data-nav="bookings" style="text-align: left; font-size: 1.05rem; min-height: 44px; display: flex; align-items: center;">My Trips</button>
+          <button class="nav-link-btn" data-nav="collab" style="text-align: left; font-size: 1.05rem; min-height: 44px; display: flex; align-items: center; color: var(--gold-light);">👥 Collaborative Trips</button>
           <button class="nav-link-btn" data-nav="planner" style="text-align: left; font-size: 1.05rem; min-height: 44px; display: flex; align-items: center;">Trip Planner Studio</button>
           <button class="nav-link-btn" data-nav="dashboard" style="text-align: left; font-size: 1.05rem; min-height: 44px; display: flex; align-items: center;">My Dashboard</button>
           <div id="mobile-drawer-auth-btn-wrap" style="margin-top: 8px;"></div>
@@ -305,6 +307,8 @@ class AuricVistaApp {
       mainMount.appendChild(renderSavedTripsView());
     } else if (activeTab === "bookings") {
       mainMount.appendChild(renderMyBookingsView());
+    } else if (activeTab === "collab" || activeTab === "collaborate" || activeTab === "team_trips") {
+      mainMount.appendChild(renderTripCollabView());
     } else if (activeTab === "admin") {
       mainMount.appendChild(renderAdminDashboardView());
     }

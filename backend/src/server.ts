@@ -15,6 +15,7 @@ import notificationsRoutes from './routes/notifications.routes';
 import adminRoutes from './routes/admin.routes';
 import analyticsRoutes from './routes/analytics.routes';
 import assistantRoutes from './routes/assistant.routes';
+import collabTripRoutes from './routes/collabTrip.routes';
 import { notificationScheduler } from './services/notificationScheduler.service';
 
 const app = express();
@@ -41,6 +42,7 @@ app.use(`${API_PREFIX}/notifications`, notificationsRoutes);
 app.use(`${API_PREFIX}/admin`, adminRoutes);
 app.use(`${API_PREFIX}/analytics`, analyticsRoutes);
 app.use(`${API_PREFIX}/assistant`, assistantRoutes);
+app.use(`${API_PREFIX}/trips`, collabTripRoutes);
 
 // Health Check
 app.get(`${API_PREFIX}/health`, (req, res) => {

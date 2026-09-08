@@ -241,7 +241,7 @@ class DisruptionRebuildService {
     // 2. Send simulated/real SMS
     if (user.phone) {
       const smsText = `AuricVyom: Travel advisory detected for your ${revision.revisedPlan.destination} stay. Nadia has prepared a revised plan. Review and accept: http://localhost:3000/#planner?tripId=${revision.tripId}`;
-      await smsService.sendSMS(user.phone, smsText);
+      await smsService.sendSMS({ to: user.phone, body: smsText });
     }
   }
 }

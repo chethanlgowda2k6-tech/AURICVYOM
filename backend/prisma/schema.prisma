@@ -34,6 +34,16 @@ model User {
   reviews           Review[]
   bookings          Booking[]
   notifications     Notification[]
+
+  // Collaborative Trips Relations
+  tripMemberships        TripMember[]
+  createdItineraryItems  TripItineraryItem[]
+  savedTripPlaces        TripSavedPlace[]
+  createdPolls           TripPoll[]
+  pollVotes              TripPollVote[]
+  tripExpensesPaid       TripExpense[]
+  tripExpenseSplits      TripExpenseSplit[]
+  tripMessages           TripMessage[]
 }
 
 model UserPreference {
@@ -411,3 +421,172 @@ model RoomHold {
   @@index([expiresAt])
   @@index([sessionId])
 }
+
+// -----------------------------------------------------------------------------
+// TEAM-BASED TRIP COLLABORATION
+// -----------------------------------------------------------------------------
+enum TripRole {
+  OWNER
+  MEMBER
+}
+
+model CollabTrip {
+  id                 String              @id @default(uuid())
+  name               String
+  destination        String
+  startDate          DateTime
+  endDate            DateTime
+  travelersCount     Int
+  targetBudget       Float?
+  currency           String              @default("INR")
+  inviteCode         String              @unique
+  coOwnerInviteCode  String?             @unique
+  coverImage         String?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  members            TripMember[]
+  itineraryItems     TripItineraryItem[]
+  savedPlaces        TripSavedPlace[]
+  polls              TripPoll[]
+  messages           TripMessage[]
+  expenses           TripExpense[]
+}
+
+model TripMember {
+  id       String     @id @default(uuid())
+  tripId   String
+  trip     CollabTrip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  userId   String
+  user     User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role     TripRole   @default(MEMBER)
+  joinedAt DateTime   @default(now())
+
+  @@unique([tripId, userId])
+  @@index([tripId])
+  @@index([userId])
+}
+
+model TripItineraryItem {
+  id          String     @id @default(uuid())
+  tripId      String
+  trip        CollabTrip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  createdById String
+  createdBy   User       @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  dayNumber   Int        @default(1)
+  title       String
+  description String?
+  location    String?
+  startTime   String?
+  endTime     String?
+  category    String?    // e.g. "STAY", "DINING", "ACTIVITY", "SIGHTSEEING", "TRAVEL"
+  cost        Float?
+  notes       String?
+  orderIndex  Int        @default(0)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([tripId, dayNumber])
+}
+
+model TripSavedPlace {
+  id        String     @id @default(uuid())
+  tripId    String
+  trip      CollabTrip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  addedById String
+  addedBy   User       @relation(fields: [addedById], references: [id], onDelete: Cascade)
+  name      String
+  category  String
+  address   String?
+  image     String?
+  rating    Float?
+  notes     String?
+  createdAt DateTime   @default(now())
+
+  @@index([tripId])
+}
+
+model TripPoll {
+  id            String           @id @default(uuid())
+  tripId        String
+  trip          CollabTrip       @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  createdById   String
+  createdBy     User             @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  question      String
+  status        String           @default("ACTIVE") // "ACTIVE", "CLOSED"
+  allowMultiple Boolean          @default(false)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  options       TripPollOption[]
+
+  @@index([tripId])
+}
+
+model TripPollOption {
+  id     String         @id @default(uuid())
+  pollId String
+  poll   TripPoll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  text   String
+  votes  TripPollVote[]
+}
+
+model TripPollVote {
+  id           String         @id @default(uuid())
+  pollOptionId String
+  pollOption   TripPollOption @relation(fields: [pollOptionId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt    DateTime       @default(now())
+
+  @@unique([pollOptionId, userId])
+}
+
+model TripExpense {
+  id          String             @id @default(uuid())
+  tripId      String
+  trip        CollabTrip         @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  paidById    String
+  paidBy      User               @relation(fields: [paidById], references: [id], onDelete: Cascade)
+  amount      Float
+  currency    String             @default("INR")
+  description String
+  category    String             @default("General")
+  date        DateTime           @default(now())
+  splitType   String             @default("EQUAL")
+  deletedAt   DateTime?          // Soft delete for financial audit trail!
+  deletedById String?            // Soft delete audit actor
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  splits      TripExpenseSplit[]
+
+  @@index([tripId])
+}
+
+model TripExpenseSplit {
+  id        String      @id @default(uuid())
+  expenseId String
+  expense   TripExpense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount    Float
+  settled   Boolean     @default(false)
+  settledAt DateTime?
+
+  @@index([expenseId])
+  @@index([userId])
+}
+
+model TripMessage {
+  id        String     @id @default(uuid())
+  tripId    String
+  trip      CollabTrip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  senderId  String
+  sender    User       @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  text      String
+  createdAt DateTime   @default(now())
+
+  @@index([tripId, createdAt])
+}
+

@@ -63,6 +63,9 @@ export function renderUserDashboardView() {
           <button class="filter-pill-btn ${activeDashboardTab === 'trips' ? 'active' : ''}" data-dtab="trips">
             🗺️ My Trips (${savedTripPlans.length})
           </button>
+          <button class="filter-pill-btn" id="dash-collab-pill-btn" style="background: rgba(212,175,55,0.12); border-color: var(--gold-primary); color: var(--gold-light);">
+            👥 Collaborative Journeys ✨
+          </button>
           <button class="filter-pill-btn ${activeDashboardTab === 'bookings' ? 'active' : ''}" data-dtab="bookings">
             🎟️ Bookings & Passes (${bookings.length})
           </button>
@@ -101,6 +104,11 @@ export function renderUserDashboardView() {
         wishlistFilter = btn.dataset.wcat;
         renderContent();
       });
+    });
+
+    // Collab Journeys pill navigation
+    section.querySelector("#dash-collab-pill-btn")?.addEventListener("click", () => {
+      appState.setActiveTab("collab");
     });
 
     // Test Notification trigger
@@ -146,11 +154,16 @@ function renderTabPane(tab, savedTripPlans, bookings, wishlist, userStories, rec
   if (tab === "trips") {
     return `
       <div style="display: flex; flex-direction: column; gap: 24px;">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
           <h3 style="font-family: var(--font-serif); font-size: 1.4rem; color: var(--text-white);">My Planned Itineraries</h3>
-          <button class="btn-primary-gold" onclick="appState.setActiveTab('planner')" style="padding: 8px 18px; font-size: 0.85rem;">
-            ＋ Plan New Itinerary
-          </button>
+          <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+            <button class="btn-outline-gold" onclick="appState.setActiveTab('collab')" style="padding: 8px 18px; font-size: 0.85rem;">
+              👥 Team Trips & Squads
+            </button>
+            <button class="btn-primary-gold" onclick="appState.setActiveTab('planner')" style="padding: 8px 18px; font-size: 0.85rem;">
+              ＋ Plan Solo Itinerary
+            </button>
+          </div>
         </div>
 
         <div class="dashboard-cards-grid">

@@ -59,6 +59,11 @@ export function renderNavbar() {
             My Trips
           </button>
         </li>
+        <li>
+          <button class="nav-link-btn ${activeTab === 'collab' ? 'active' : ''}" data-tab="collab" style="color: var(--gold-light);">
+            👥 Team Trips
+          </button>
+        </li>
       </ul>
 
       <!-- Right Action Utilities -->
@@ -118,6 +123,10 @@ export function renderNavbar() {
                 <button class="dropdown-item-btn" data-action="profile">
                   <span class="item-icon">👤</span>
                   <span>My Profile & Dashboard</span>
+                </button>
+                <button class="dropdown-item-btn" data-action="collab">
+                  <span class="item-icon">👥</span>
+                  <span>Collaborative Journeys</span>
                 </button>
                 <button class="dropdown-item-btn" data-action="saved">
                   <span class="item-icon">❤️</span>
@@ -204,6 +213,7 @@ export function renderNavbar() {
         isProfileDropdownOpen = false;
         const action = btn.dataset.action;
         if (action === "profile") appState.setActiveTab("dashboard");
+        else if (action === "collab") appState.setActiveTab("collab");
         else if (action === "saved") appState.setActiveTab("saved");
         else if (action === "journal") appState.setActiveTab("journal");
         else if (action === "bookings") appState.setActiveTab("bookings");

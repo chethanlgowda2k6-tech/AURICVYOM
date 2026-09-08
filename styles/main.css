@@ -1288,12 +1288,14 @@ img {
 }
 
 /* Modals */
-.auric-modal-backdrop {
+.auric-modal-backdrop,
+.modal-overlay-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 2000;
+  z-index: 9999;
   background: rgba(3, 5, 8, 0.85);
   backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1303,9 +1305,10 @@ img {
   transition: opacity var(--transition-smooth);
 }
 
-.auric-modal-backdrop.active {
-  opacity: 1;
-  pointer-events: auto;
+.auric-modal-backdrop.active,
+.modal-overlay-backdrop.active {
+  opacity: 1 !important;
+  pointer-events: auto !important;
 }
 
 .modal-window-container {
@@ -1324,7 +1327,8 @@ img {
   scrollbar-color: var(--gold-dark) var(--bg-surface);
 }
 
-.auric-modal-backdrop.active .modal-window-container {
+.auric-modal-backdrop.active .modal-window-container,
+.modal-overlay-backdrop.active .modal-window-container {
   transform: scale(1);
 }
 

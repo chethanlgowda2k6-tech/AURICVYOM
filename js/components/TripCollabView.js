@@ -896,6 +896,39 @@ export function renderTripCollabView() {
     });
   };
 
+  // Event delegation on container for robust button handling
+  container.addEventListener("click", (e) => {
+    const createBtn = e.target.closest("#open-create-trip-modal-btn, #empty-create-trip-btn");
+    if (createBtn) {
+      e.preventDefault();
+      e.stopPropagation();
+      renderCreateTripModal();
+      return;
+    }
+
+    const joinBtn = e.target.closest("#open-join-trip-modal-btn, #empty-join-trip-btn");
+    if (joinBtn) {
+      e.preventDefault();
+      e.stopPropagation();
+      renderJoinTripModal();
+      return;
+    }
+
+    const tripCard = e.target.closest(".collab-trip-card");
+    if (tripCard) {
+      const tripId = tripCard.dataset.tripId;
+      if (tripId) appState.fetchCollabTripDetails(tripId);
+      return;
+    }
+
+    const backBtn = e.target.closest("#back-to-hub-btn");
+    if (backBtn) {
+      e.preventDefault();
+      appState.setState({ currentCollabTrip: null });
+      return;
+    }
+  });
+
   // Subscribe to state updates
   appState.subscribe(render);
 
@@ -912,7 +945,7 @@ export function renderTripCollabView() {
 // =============================================================================
 function renderCreateTripModal() {
   const modal = document.createElement("div");
-  modal.className = "modal-overlay-backdrop active";
+  modal.className = "auric-modal-backdrop modal-overlay-backdrop active";
   modal.id = "create-collab-trip-modal";
 
   const tomorrow = new Date();
@@ -1015,6 +1048,7 @@ function renderCreateTripModal() {
   document.body.appendChild(modal);
 
   const close = () => modal.remove();
+  modal.addEventListener("click", (e) => { if (e.target === modal) close(); });
   modal.querySelector("#close-create-trip-modal")?.addEventListener("click", close);
   modal.querySelector("#cancel-create-trip-btn")?.addEventListener("click", close);
 
@@ -1052,7 +1086,7 @@ function renderCreateTripModal() {
 // =============================================================================
 function renderJoinTripModal() {
   const modal = document.createElement("div");
-  modal.className = "modal-overlay-backdrop active";
+  modal.className = "auric-modal-backdrop modal-overlay-backdrop active";
   modal.id = "join-collab-trip-modal";
 
   modal.innerHTML = `
@@ -1093,6 +1127,7 @@ function renderJoinTripModal() {
   document.body.appendChild(modal);
 
   const close = () => modal.remove();
+  modal.addEventListener("click", (e) => { if (e.target === modal) close(); });
   modal.querySelector("#close-join-trip-modal")?.addEventListener("click", close);
   modal.querySelector("#cancel-join-modal-btn")?.addEventListener("click", close);
 
@@ -1135,7 +1170,7 @@ function renderJoinTripModal() {
 // =============================================================================
 function renderAddItineraryModal(tripId, defaultDay = 1, prefill = null) {
   const modal = document.createElement("div");
-  modal.className = "modal-overlay-backdrop active";
+  modal.className = "auric-modal-backdrop modal-overlay-backdrop active";
 
   modal.innerHTML = `
     <div class="modal-window-container" style="max-width: 550px; padding: 28px;">
@@ -1212,6 +1247,7 @@ function renderAddItineraryModal(tripId, defaultDay = 1, prefill = null) {
   document.body.appendChild(modal);
 
   const close = () => modal.remove();
+  modal.addEventListener("click", (e) => { if (e.target === modal) close(); });
   modal.querySelector("#close-itinerary-modal")?.addEventListener("click", close);
   modal.querySelector("#cancel-itin-btn")?.addEventListener("click", close);
 
@@ -1246,7 +1282,7 @@ function renderAddItineraryModal(tripId, defaultDay = 1, prefill = null) {
 // =============================================================================
 function renderAddPlaceModal(tripId) {
   const modal = document.createElement("div");
-  modal.className = "modal-overlay-backdrop active";
+  modal.className = "auric-modal-backdrop modal-overlay-backdrop active";
 
   modal.innerHTML = `
     <div class="modal-window-container" style="max-width: 500px; padding: 28px;">
@@ -1305,6 +1341,7 @@ function renderAddPlaceModal(tripId) {
   document.body.appendChild(modal);
 
   const close = () => modal.remove();
+  modal.addEventListener("click", (e) => { if (e.target === modal) close(); });
   modal.querySelector("#close-place-modal")?.addEventListener("click", close);
   modal.querySelector("#cancel-place-btn")?.addEventListener("click", close);
 
@@ -1333,7 +1370,7 @@ function renderAddPlaceModal(tripId) {
 // =============================================================================
 function renderCreatePollModal(tripId) {
   const modal = document.createElement("div");
-  modal.className = "modal-overlay-backdrop active";
+  modal.className = "auric-modal-backdrop modal-overlay-backdrop active";
 
   modal.innerHTML = `
     <div class="modal-window-container" style="max-width: 520px; padding: 28px;">
@@ -1375,6 +1412,7 @@ function renderCreatePollModal(tripId) {
   document.body.appendChild(modal);
 
   const close = () => modal.remove();
+  modal.addEventListener("click", (e) => { if (e.target === modal) close(); });
   modal.querySelector("#close-poll-modal")?.addEventListener("click", close);
   modal.querySelector("#cancel-poll-btn")?.addEventListener("click", close);
 
@@ -1410,7 +1448,7 @@ function renderCreatePollModal(tripId) {
 // =============================================================================
 function renderAddExpenseModal(tripId, members = []) {
   const modal = document.createElement("div");
-  modal.className = "modal-overlay-backdrop active";
+  modal.className = "auric-modal-backdrop modal-overlay-backdrop active";
 
   modal.innerHTML = `
     <div class="modal-window-container" style="max-width: 520px; padding: 28px;">
@@ -1470,6 +1508,7 @@ function renderAddExpenseModal(tripId, members = []) {
   document.body.appendChild(modal);
 
   const close = () => modal.remove();
+  modal.addEventListener("click", (e) => { if (e.target === modal) close(); });
   modal.querySelector("#close-expense-modal")?.addEventListener("click", close);
   modal.querySelector("#cancel-exp-btn")?.addEventListener("click", close);
 
@@ -1497,7 +1536,7 @@ function renderAddExpenseModal(tripId, members = []) {
 // =============================================================================
 function renderManageSquadModal(trip) {
   const modal = document.createElement("div");
-  modal.className = "modal-overlay-backdrop active";
+  modal.className = "auric-modal-backdrop modal-overlay-backdrop active";
 
   const members = trip.members || [];
   const currentUserId = appState.getState().currentUser?.id;
@@ -1598,6 +1637,7 @@ function renderManageSquadModal(trip) {
   document.body.appendChild(modal);
 
   const close = () => modal.remove();
+  modal.addEventListener("click", (e) => { if (e.target === modal) close(); });
   modal.querySelector("#close-squad-modal")?.addEventListener("click", close);
   modal.querySelector("#close-squad-done-btn")?.addEventListener("click", close);
 

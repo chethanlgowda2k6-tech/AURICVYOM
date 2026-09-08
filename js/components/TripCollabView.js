@@ -3,6 +3,16 @@
 
 import { appState } from "../state.js";
 import { DESTINATIONS } from "../data/destinations.js";
+import {
+  TIME_PERIOD_PRESETS,
+  DURATION_PRESETS,
+  LANDMARK_TIMINGS,
+  calculateEndTime,
+  calculateDuration,
+  formatTime12,
+  checkTimelineConflict,
+  findMatchingLandmarks
+} from "../services/itineraryTimingService.js";
 
 export function renderTripCollabView() {
   const container = document.createElement("div");
@@ -349,7 +359,19 @@ export function renderTripCollabView() {
         <!-- Timeline Items -->
         ${filteredItinerary.length > 0 ? `
           <div style="display: flex; flex-direction: column; gap: 16px;">
-            ${filteredItinerary.map(item => `
+            ${filteredItinerary.map(item => {
+              const durInfo = calculateDuration(item.startTime, item.endTime);
+              const formattedTime = item.startTime
+                ? `${formatTime12(item.startTime)}${item.endTime ? ` – ${formatTime12(item.endTime)}` : ''}`
+                : '';
+              const categoryIcon = item.category === 'DINING' ? '🍽️' :
+                                   item.category === 'SIGHTSEEING' ? '🏛️' :
+                                   item.category === 'STAY' ? '🏨' :
+                                   item.category === 'TRAVEL' ? '🚗' :
+                                   item.category === 'WELLNESS' ? '🧘' :
+                                   item.category === 'SHOPPING' ? '🛍️' : '🧗';
+
+              return `
               <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 20px 24px; display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; transition: transform 0.2s;" class="itinerary-card">
                 <div style="display: flex; gap: 20px; align-items: flex-start;">
                   <div style="text-align: center; min-width: 60px; padding: 10px 8px; background: rgba(212,175,55,0.08); border: 1px solid var(--border-gold); border-radius: var(--radius-md);">
@@ -360,11 +382,11 @@ export function renderTripCollabView() {
                   <div>
                     <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 6px; flex-wrap: wrap;">
                       <span style="background: rgba(255,255,255,0.06); font-size: 0.75rem; color: var(--gold-light); padding: 3px 10px; border-radius: var(--radius-full); font-weight: 600;">
-                        ${item.category || 'ACTIVITY'}
+                        ${categoryIcon} ${item.category || 'ACTIVITY'}
                       </span>
-                      ${item.startTime ? `
-                        <span style="color: var(--text-secondary); font-size: 0.8rem; font-weight: 600;">
-                          ⏰ ${item.startTime} ${item.endTime ? `– ${item.endTime}` : ''}
+                      ${formattedTime ? `
+                        <span style="color: var(--text-white); font-size: 0.8rem; font-weight: 700; background: rgba(212,175,55,0.12); border: 1px solid rgba(212,175,55,0.35); padding: 2px 8px; border-radius: var(--radius-sm);">
+                          ⏰ ${formattedTime} ${durInfo.isValid ? `(${durInfo.text})` : ''}
                         </span>
                       ` : ''}
                       ${item.cost ? `
@@ -379,8 +401,11 @@ export function renderTripCollabView() {
                     </h4>
 
                     ${item.location ? `
-                      <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px;">
-                        📍 ${item.location}
+                      <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                        <span>📍 ${item.location}</span>
+                        <a href="https://maps.google.com/?q=${encodeURIComponent(item.location)}" target="_blank" rel="noopener" style="color: var(--gold-light); text-decoration: none; font-size: 0.76rem; border-bottom: 1px dashed var(--gold-light);">
+                          🗺️ View on Maps ↗
+                        </a>
                       </div>
                     ` : ''}
 
@@ -397,13 +422,17 @@ export function renderTripCollabView() {
                 </div>
 
                 <!-- Item Actions -->
-                <div style="display: flex; gap: 8px;">
+                <div style="display: flex; gap: 8px; flex-shrink: 0;">
+                  <button class="edit-itinerary-item-btn" data-item-id="${item.id}" style="background: none; border: 1px solid var(--border-gold); color: var(--gold-light); border-radius: var(--radius-sm); padding: 6px 12px; cursor: pointer; font-size: 0.8rem; font-weight: 600; display: flex; align-items: center; gap: 4px;" title="Edit Activity & Timings">
+                    ✏️ Edit
+                  </button>
                   <button class="delete-itinerary-item-btn" data-item-id="${item.id}" style="background: none; border: 1px solid rgba(244,63,94,0.3); color: #f43f5e; border-radius: var(--radius-sm); padding: 6px 10px; cursor: pointer; font-size: 0.8rem;" title="Delete Activity">
                     🗑️
                   </button>
                 </div>
               </div>
-            `).join('')}
+            `;
+            }).join('')}
           </div>
         ` : `
           <div style="background: var(--bg-card); border: 1px dashed var(--border-subtle); border-radius: var(--radius-md); padding: 60px 24px; text-align: center;">
@@ -425,6 +454,15 @@ export function renderTripCollabView() {
 
       tabMount.querySelector("#open-add-itinerary-btn")?.addEventListener("click", () => renderAddItineraryModal(trip.id, activeDayFilter === "all" ? 1 : Number(activeDayFilter)));
       tabMount.querySelector("#empty-add-itinerary-btn")?.addEventListener("click", () => renderAddItineraryModal(trip.id, 1));
+
+      tabMount.querySelectorAll(".edit-itinerary-item-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const item = itinerary.find(it => it.id === btn.dataset.itemId);
+          if (item) {
+            renderItineraryActivityModal(trip, true, item, item.dayNumber);
+          }
+        });
+      });
 
       tabMount.querySelectorAll(".delete-itinerary-item-btn").forEach(btn => {
         btn.addEventListener("click", async () => {
@@ -1189,79 +1227,255 @@ function renderJoinTripModal() {
 }
 
 // =============================================================================
-// MODAL 3: ADD ITINERARY ITEM MODAL
+// MODAL 3: ADVANCED BESPOKE ITINERARY ACTIVITY MODAL (ADD & EDIT)
 // =============================================================================
-function renderAddItineraryModal(tripId, defaultDay = 1, prefill = null) {
+function renderItineraryActivityModal(trip, isEdit = false, itemToEdit = null, defaultDay = 1, prefill = null) {
+  document.querySelectorAll("#itinerary-activity-modal").forEach(el => el.remove());
+
   const modal = document.createElement("div");
   modal.className = "auric-modal-backdrop modal-overlay-backdrop active";
+  modal.id = "itinerary-activity-modal";
+
+  const initialDay = itemToEdit?.dayNumber || (prefill?.dayNumber || defaultDay) || 1;
+  const initialCategory = itemToEdit?.category || prefill?.category || "SIGHTSEEING";
+  const initialTitle = itemToEdit?.title || prefill?.title || "";
+  const initialLocation = itemToEdit?.location || prefill?.location || "";
+  let currentStartTime = itemToEdit?.startTime || prefill?.startTime || "09:30";
+  let currentEndTime = itemToEdit?.endTime || prefill?.endTime || calculateEndTime(currentStartTime, 120);
+  const initialCost = itemToEdit?.cost !== undefined && itemToEdit?.cost !== null ? itemToEdit.cost : (prefill?.cost || "");
+  const initialDesc = itemToEdit?.description || prefill?.description || "";
+  let currentTransitBuffer = 0;
+
+  // Day options: 1 to trip.durationDays or max day in existing itinerary
+  const existingItems = trip?.itineraryItems || [];
+  const maxDayInTrip = Math.max(trip?.durationDays || 3, ...(existingItems.map(i => Number(i.dayNumber)) || [1]), Number(defaultDay));
+  const dayOptions = Array.from({ length: Math.max(maxDayInTrip, 1) }, (_, i) => i + 1);
+
+  // Suggested landmarks for this trip destination or general
+  const tripDest = trip?.destination || trip?.name || "";
+  const quickLandmarks = findMatchingLandmarks("", tripDest);
+
+  // Match initial landmark if any
+  let currentLandmark = LANDMARK_TIMINGS.find(lm =>
+    (initialLocation && lm.name.toLowerCase().includes(initialLocation.toLowerCase())) ||
+    (initialTitle && lm.name.toLowerCase().includes(initialTitle.toLowerCase()))
+  ) || null;
 
   modal.innerHTML = `
-    <div class="modal-window-container" style="max-width: 550px; padding: 28px;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <h3 style="font-family: var(--font-serif); font-size: 1.4rem; color: var(--text-white);">
-          Add Itinerary Activity
-        </h3>
-        <button id="close-itinerary-modal" style="background: none; border: none; font-size: 1.5rem; color: #fff; cursor: pointer;">✕</button>
+    <div class="modal-window-container" style="max-width: 640px; max-height: 90vh; overflow-y: auto; padding: 28px 32px; border: 1.5px solid var(--border-gold); background: rgba(10, 14, 24, 0.96); box-shadow: 0 24px 70px rgba(0,0,0,0.85), 0 0 35px rgba(212,175,55,0.18);">
+      <!-- Header -->
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 16px;">
+        <div>
+          <span class="section-tag-gold" style="font-size: 0.72rem; letter-spacing: 0.08em;">SMART SCHEDULING CONCIERGE</span>
+          <h3 style="font-family: var(--font-serif); font-size: 1.45rem; color: var(--text-white); margin-top: 4px;">
+            ${isEdit ? '✏️ Edit Itinerary Activity & Timings' : '✨ Add Bespoke Itinerary Activity'}
+          </h3>
+          <p style="color: var(--text-secondary); font-size: 0.82rem; margin-top: 2px;">
+            ${isEdit ? 'Fine-tune timing windows, operating hours, and squad notes.' : 'Curate palaces, dining, experiences & transit buffers with real-time timings.'}
+          </p>
+        </div>
+        <button id="close-itinerary-modal" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-subtle); border-radius: 50%; width: 34px; height: 34px; font-size: 1.1rem; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center;">✕</button>
       </div>
 
-      <form id="add-itinerary-form" style="display: flex; flex-direction: column; gap: 14px;">
+      <form id="itinerary-activity-form" style="display: flex; flex-direction: column; gap: 18px;">
+        <!-- Day Number & Category Row -->
         <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 14px;">
           <div>
-            <label style="display: block; font-size: 0.8rem; color: var(--gold-light); font-weight: 700; margin-bottom: 4px;">Day Number</label>
-            <input type="number" id="itin-day" min="1" max="60" value="${defaultDay}" required
-                   style="width: 100%; background: rgba(255,255,255,0.06); border: 1px solid var(--border-gold); border-radius: var(--radius-md); padding: 10px; color: #fff;" />
+            <label style="display: block; font-size: 0.8rem; color: var(--gold-light); font-weight: 700; margin-bottom: 6px;">
+              📅 Itinerary Day
+            </label>
+            <select id="itin-day" style="width: 100%; background: #080c14; border: 1.5px solid var(--border-gold); border-radius: var(--radius-md); padding: 10px 12px; color: #fff; font-weight: 600; font-size: 0.88rem;">
+              ${dayOptions.map(d => `
+                <option value="${d}" ${d === Number(initialDay) ? 'selected' : ''}>Day ${d}</option>
+              `).join('')}
+            </select>
           </div>
           <div>
-            <label style="display: block; font-size: 0.8rem; color: var(--gold-light); font-weight: 700; margin-bottom: 4px;">Category</label>
-            <select id="itin-category" style="width: 100%; background: #080c14; border: 1px solid var(--border-gold); border-radius: var(--radius-md); padding: 10px; color: #fff;">
-              <option value="SIGHTSEEING" ${prefill?.category === 'SIGHTSEEING' ? 'selected' : ''}>🏛️ Sightseeing</option>
-              <option value="DINING" ${prefill?.category === 'DINING' || prefill?.category === 'Fine Dining' ? 'selected' : ''}>🍽️ Dining</option>
-              <option value="ACTIVITY" selected>🧗 Activity / Experience</option>
-              <option value="STAY">🏨 Stay / Check-in</option>
-              <option value="TRAVEL">🚗 Transport / Transfer</option>
+            <label style="display: block; font-size: 0.8rem; color: var(--gold-light); font-weight: 700; margin-bottom: 6px;">
+              🏷️ Category
+            </label>
+            <select id="itin-category" style="width: 100%; background: #080c14; border: 1.5px solid var(--border-gold); border-radius: var(--radius-md); padding: 10px 12px; color: #fff; font-weight: 600; font-size: 0.88rem;">
+              <option value="SIGHTSEEING" ${initialCategory === 'SIGHTSEEING' ? 'selected' : ''}>🏛️ Monument & Palace Sightseeing</option>
+              <option value="DINING" ${initialCategory === 'DINING' || initialCategory === 'Fine Dining' ? 'selected' : ''}>🍽️ Royal Dining / Gastronomy</option>
+              <option value="ACTIVITY" ${initialCategory === 'ACTIVITY' ? 'selected' : ''}>🧗 Experience, Safari & Workshop</option>
+              <option value="STAY" ${initialCategory === 'STAY' ? 'selected' : ''}>🏨 Luxury Stay / Check-in / Checkout</option>
+              <option value="TRAVEL" ${initialCategory === 'TRAVEL' ? 'selected' : ''}>🚗 Chauffeur Transfer & Scenic Drive</option>
+              <option value="WELLNESS" ${initialCategory === 'WELLNESS' ? 'selected' : ''}>🧘 Ayurveda, Yoga & Spa Rejuvenation</option>
+              <option value="SHOPPING" ${initialCategory === 'SHOPPING' ? 'selected' : ''}>🛍️ Artisan Bazaar & Gemstone Trail</option>
             </select>
           </div>
         </div>
 
+        <!-- Activity Title -->
         <div>
-          <label style="display: block; font-size: 0.8rem; color: var(--gold-light); font-weight: 700; margin-bottom: 4px;">Activity Title *</label>
-          <input type="text" id="itin-title" value="${prefill?.title || ''}" required placeholder="e.g. Sunrise Hot Air Balloon Safari"
-                 style="width: 100%; background: rgba(255,255,255,0.06); border: 1px solid var(--border-gold); border-radius: var(--radius-md); padding: 10px; color: #fff;" />
+          <label style="display: block; font-size: 0.8rem; color: var(--gold-light); font-weight: 700; margin-bottom: 6px;">
+            Activity Title *
+          </label>
+          <input type="text" id="itin-title" value="${initialTitle}" required placeholder="e.g. Private Sunset Solar Boat Cruise on Lake Pichola"
+                 style="width: 100%; background: rgba(255,255,255,0.05); border: 1.5px solid var(--border-gold); border-radius: var(--radius-md); padding: 11px 14px; color: #fff; font-size: 0.92rem;" />
         </div>
 
+        <!-- Location & Landmark Timings Assistant -->
+        <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <label style="font-size: 0.8rem; color: var(--gold-light); font-weight: 700;">
+              📍 Destination Landmark & Location Timings
+            </label>
+            <div id="maps-link-wrap">
+              ${initialLocation ? `
+                <a href="https://maps.google.com/?q=${encodeURIComponent(initialLocation)}" target="_blank" rel="noopener" style="font-size: 0.74rem; color: var(--gold-light); text-decoration: none;">
+                  🗺️ Preview on Google Maps ↗
+                </a>
+              ` : ''}
+            </div>
+          </div>
+          <div style="position: relative;">
+            <input type="text" id="itin-location" value="${initialLocation}" placeholder="Type landmark or palace name (e.g. Amer Fort, City Palace, Lake Pichola...)"
+                   style="width: 100%; background: rgba(0,0,0,0.4); border: 1px solid var(--border-gold); border-radius: var(--radius-md); padding: 10px 14px; color: #fff; font-size: 0.9rem;" autocomplete="off" />
+            <div id="landmark-autocomplete-dropdown" style="display: none; position: absolute; top: 100%; left: 0; right: 0; z-index: 100; background: #0b0f19; border: 1px solid var(--border-gold); border-radius: var(--radius-md); max-height: 220px; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.8); margin-top: 4px;"></div>
+          </div>
+
+          <!-- Quick Suggested Landmark Chips -->
+          ${quickLandmarks.length > 0 ? `
+            <div style="margin-top: 10px;">
+              <div style="font-size: 0.72rem; color: var(--text-muted); margin-bottom: 6px;">💡 Tap to autofill curated timings & operating hours:</div>
+              <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+                ${quickLandmarks.map(lm => `
+                  <button type="button" class="landmark-quick-chip" data-name="${lm.name}" style="background: rgba(212,175,55,0.08); border: 1px solid rgba(212,175,55,0.3); border-radius: var(--radius-full); padding: 4px 10px; font-size: 0.74rem; color: var(--gold-light); cursor: pointer; transition: all 0.2s;">
+                    🏛️ ${lm.name}
+                  </button>
+                `).join('')}
+              </div>
+            </div>
+          ` : ''}
+
+          <!-- Dynamic Landmark Timings Card Container -->
+          <div id="landmark-timings-card" style="margin-top: 12px; ${currentLandmark ? '' : 'display: none;'}"></div>
+        </div>
+
+        <!-- Smart Time & Location Timings Section -->
+        <div style="background: rgba(18, 24, 38, 0.7); border: 1px solid var(--border-gold); border-radius: var(--radius-md); padding: 18px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+            <div style="font-size: 0.82rem; color: var(--gold-light); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">
+              ⏰ Timing Schedule & Duration
+            </div>
+            <div id="duration-badge" style="font-size: 0.78rem; font-weight: 700; color: #34d399; background: rgba(16,185,129,0.15); border: 1px solid #10b981; padding: 2px 10px; border-radius: var(--radius-full);">
+              ⏱️ 2 hrs 0 mins
+            </div>
+          </div>
+
+          <!-- Time Period Presets -->
+          <div style="margin-bottom: 14px;">
+            <div style="font-size: 0.72rem; color: var(--text-muted); margin-bottom: 6px;">Time Period Slots:</div>
+            <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+              ${TIME_PERIOD_PRESETS.map(p => `
+                <button type="button" class="time-period-preset-chip" data-start="${p.start}" data-end="${p.end}" title="${p.desc}" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-subtle); border-radius: var(--radius-full); padding: 5px 10px; font-size: 0.74rem; color: #cbd5e1; cursor: pointer; transition: all 0.2s;">
+                  ${p.label}
+                </button>
+              `).join('')}
+            </div>
+          </div>
+
+          <!-- Start Time, Quick Duration Pills, and End Time Grid -->
+          <div style="display: grid; grid-template-columns: 1fr auto 1fr; gap: 14px; align-items: center;">
+            <div>
+              <label style="display: block; font-size: 0.75rem; color: var(--gold-light); font-weight: 700; margin-bottom: 4px;">
+                Start Time
+              </label>
+              <input type="time" id="itin-start-time" value="${currentStartTime}" required
+                     style="width: 100%; background: #080c14; border: 1px solid var(--border-gold); border-radius: var(--radius-md); padding: 10px 12px; color: #fff; font-size: 0.95rem; font-weight: 600;" />
+            </div>
+
+            <div style="display: flex; align-items: center; justify-content: center; padding-top: 18px; color: var(--gold-light); font-size: 1.2rem;">
+              →
+            </div>
+
+            <div>
+              <label style="display: block; font-size: 0.75rem; color: var(--gold-light); font-weight: 700; margin-bottom: 4px;">
+                End Time
+              </label>
+              <input type="time" id="itin-end-time" value="${currentEndTime}" required
+                     style="width: 100%; background: #080c14; border: 1px solid var(--border-gold); border-radius: var(--radius-md); padding: 10px 12px; color: #fff; font-size: 0.95rem; font-weight: 600;" />
+            </div>
+          </div>
+
+          <!-- Quick Duration Extension Chips -->
+          <div style="margin-top: 12px;">
+            <div style="font-size: 0.72rem; color: var(--text-muted); margin-bottom: 6px;">Set Duration:</div>
+            <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+              ${DURATION_PRESETS.map(d => `
+                <button type="button" class="duration-preset-chip" data-minutes="${d.minutes}" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); border-radius: var(--radius-sm); padding: 4px 10px; font-size: 0.74rem; color: #cbd5e1; cursor: pointer; transition: all 0.2s;">
+                  ${d.label}
+                </button>
+              `).join('')}
+            </div>
+          </div>
+
+          <!-- Transit Buffer Allowance -->
+          <div style="margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+            <div style="font-size: 0.75rem; color: var(--text-secondary);">
+              🚗 Transit / Travel buffer to next stop:
+            </div>
+            <div style="display: flex; gap: 6px;" id="transit-buffer-group">
+              <button type="button" class="transit-buffer-chip active" data-mins="0" style="background: rgba(212,175,55,0.2); border: 1px solid var(--gold-primary); color: var(--gold-light); border-radius: var(--radius-sm); padding: 3px 8px; font-size: 0.72rem; cursor: pointer;">Direct</button>
+              <button type="button" class="transit-buffer-chip" data-mins="15" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #cbd5e1; border-radius: var(--radius-sm); padding: 3px 8px; font-size: 0.72rem; cursor: pointer;">+15 min</button>
+              <button type="button" class="transit-buffer-chip" data-mins="30" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #cbd5e1; border-radius: var(--radius-sm); padding: 3px 8px; font-size: 0.72rem; cursor: pointer;">+30 min</button>
+              <button type="button" class="transit-buffer-chip" data-mins="45" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #cbd5e1; border-radius: var(--radius-sm); padding: 3px 8px; font-size: 0.72rem; cursor: pointer;">+45 min</button>
+            </div>
+          </div>
+
+          <!-- Schedule Conflict Alert Container -->
+          <div id="timeline-conflict-alert" style="margin-top: 12px; display: none;"></div>
+        </div>
+
+        <!-- Estimated Cost & Squad Split Option -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: center;">
+          <div>
+            <label style="display: block; font-size: 0.8rem; color: var(--gold-light); font-weight: 700; margin-bottom: 4px;">
+              💰 Estimated Cost (₹ Total)
+            </label>
+            <input type="number" id="itin-cost" value="${initialCost}" placeholder="0" min="0" step="50"
+                   style="width: 100%; background: rgba(255,255,255,0.05); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 10px 12px; color: #fff; font-size: 0.95rem; font-weight: 600;" />
+          </div>
+
+          <div style="padding-top: 20px;">
+            <label style="display: flex; align-items: center; gap: 8px; font-size: 0.78rem; color: var(--text-secondary); cursor: pointer;">
+              <input type="checkbox" id="itin-split-expense" style="accent-color: var(--gold-primary); width: 16px; height: 16px;" />
+              <span>Split cost equally across squad in Expenses</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Description, Notes & Inclusions -->
         <div>
-          <label style="display: block; font-size: 0.8rem; color: var(--gold-light); font-weight: 700; margin-bottom: 4px;">Location</label>
-          <input type="text" id="itin-location" placeholder="e.g. Amer Fort Valley, Jaipur"
-                 style="width: 100%; background: rgba(255,255,255,0.06); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 10px; color: #fff;" />
+          <label style="display: block; font-size: 0.8rem; color: var(--gold-light); font-weight: 700; margin-bottom: 4px;">
+            📝 Experience Description & Insider Notes
+          </label>
+          <textarea id="itin-desc" rows="3" placeholder="Recommended dress code, camera permit details, meeting point or master guide contact..."
+                    style="width: 100%; background: rgba(255,255,255,0.05); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 10px 12px; color: #fff; font-size: 0.88rem; line-height: 1.5;">${initialDesc}</textarea>
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;">
-          <div>
-            <label style="display: block; font-size: 0.8rem; color: var(--gold-light); font-weight: 700; margin-bottom: 4px;">Start Time</label>
-            <input type="time" id="itin-start-time" value="10:00"
-                   style="width: 100%; background: rgba(255,255,255,0.06); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 10px; color: #fff;" />
-          </div>
-          <div>
-            <label style="display: block; font-size: 0.8rem; color: var(--gold-light); font-weight: 700; margin-bottom: 4px;">End Time</label>
-            <input type="time" id="itin-end-time" value="12:30"
-                   style="width: 100%; background: rgba(255,255,255,0.06); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 10px; color: #fff;" />
-          </div>
-          <div>
-            <label style="display: block; font-size: 0.8rem; color: var(--gold-light); font-weight: 700; margin-bottom: 4px;">Est. Cost (₹)</label>
-            <input type="number" id="itin-cost" placeholder="0" min="0" step="100"
-                   style="width: 100%; background: rgba(255,255,255,0.06); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 10px; color: #fff;" />
-          </div>
-        </div>
-
+        <!-- Quick Inclusion Badges -->
         <div>
-          <label style="display: block; font-size: 0.8rem; color: var(--gold-light); font-weight: 700; margin-bottom: 4px;">Description / Notes</label>
-          <textarea id="itin-desc" rows="2" placeholder="Wear comfortable shoes, carry cameras..."
-                    style="width: 100%; background: rgba(255,255,255,0.06); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 10px; color: #fff;"></textarea>
+          <div style="font-size: 0.72rem; color: var(--text-muted); margin-bottom: 6px;">Inclusions / Tips to tag in activity:</div>
+          <div style="display: flex; flex-wrap: wrap; gap: 6px;" id="itin-inclusions-wrap">
+            <button type="button" class="inclusion-tag-btn" data-tag="📸 Camera Permit Required" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: var(--radius-sm); padding: 3px 8px; font-size: 0.72rem; color: #cbd5e1; cursor: pointer;">📸 Camera Permit</button>
+            <button type="button" class="inclusion-tag-btn" data-tag="🎧 Audio Headset Tour" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: var(--radius-sm); padding: 3px 8px; font-size: 0.72rem; color: #cbd5e1; cursor: pointer;">🎧 Audio Headset</button>
+            <button type="button" class="inclusion-tag-btn" data-tag="👟 Comfortable Walking Shoes" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: var(--radius-sm); padding: 3px 8px; font-size: 0.72rem; color: #cbd5e1; cursor: pointer;">👟 Walking Shoes</button>
+            <button type="button" class="inclusion-tag-btn" data-tag="👔 Traditional Dress Code" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: var(--radius-sm); padding: 3px 8px; font-size: 0.72rem; color: #cbd5e1; cursor: pointer;">👔 Dress Code</button>
+            <button type="button" class="inclusion-tag-btn" data-tag="🚗 AC Chauffeur Transfer" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: var(--radius-sm); padding: 3px 8px; font-size: 0.72rem; color: #cbd5e1; cursor: pointer;">🚗 AC Chauffeur</button>
+            <button type="button" class="inclusion-tag-btn" data-tag="🎟️ Pre-booked Fast-track" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: var(--radius-sm); padding: 3px 8px; font-size: 0.72rem; color: #cbd5e1; cursor: pointer;">🎟️ Fast-track Entry</button>
+          </div>
         </div>
 
-        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px;">
-          <button type="button" id="cancel-itin-btn" class="btn-outline-glass" style="padding: 8px 18px;">Cancel</button>
-          <button type="submit" class="btn-primary-gold" style="padding: 8px 24px;">+ Add to Itinerary</button>
+        <!-- Form Submit Actions -->
+        <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 10px; border-top: 1px solid var(--border-subtle); padding-top: 16px;">
+          <button type="button" id="cancel-itin-btn" class="btn-outline-glass" style="padding: 10px 22px; font-size: 0.88rem;">
+            Cancel
+          </button>
+          <button type="submit" id="save-itinerary-btn" class="btn-primary-gold" style="padding: 10px 28px; font-size: 0.92rem; font-weight: 700;">
+            ${isEdit ? '💾 Save Changes' : '+ Add to Itinerary'}
+          </button>
         </div>
       </form>
     </div>
@@ -1274,31 +1488,360 @@ function renderAddItineraryModal(tripId, defaultDay = 1, prefill = null) {
   modal.querySelector("#close-itinerary-modal")?.addEventListener("click", close);
   modal.querySelector("#cancel-itin-btn")?.addEventListener("click", close);
 
-  modal.querySelector("#add-itinerary-form")?.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const form = e.target;
-    const dayNumber = Number(form.querySelector("#itin-day")?.value || 1);
-    const category = form.querySelector("#itin-category")?.value;
-    const title = form.querySelector("#itin-title")?.value?.trim();
-    const location = form.querySelector("#itin-location")?.value?.trim();
-    const startTime = form.querySelector("#itin-start-time")?.value;
-    const endTime = form.querySelector("#itin-end-time")?.value;
-    const cost = form.querySelector("#itin-cost")?.value;
-    const description = form.querySelector("#itin-desc")?.value?.trim();
+  const form = modal.querySelector("#itinerary-activity-form");
+  const dayInput = modal.querySelector("#itin-day");
+  const titleInput = modal.querySelector("#itin-title");
+  const locationInput = modal.querySelector("#itin-location");
+  const categorySelect = modal.querySelector("#itin-category");
+  const startInput = modal.querySelector("#itin-start-time");
+  const endInput = modal.querySelector("#itin-end-time");
+  const costInput = modal.querySelector("#itin-cost");
+  const descInput = modal.querySelector("#itin-desc");
+  const durationBadge = modal.querySelector("#duration-badge");
+  const conflictAlert = modal.querySelector("#timeline-conflict-alert");
+  const landmarkCard = modal.querySelector("#landmark-timings-card");
+  const mapsLinkWrap = modal.querySelector("#maps-link-wrap");
+  const dropdown = modal.querySelector("#landmark-autocomplete-dropdown");
 
-    const res = await appState.addCollabItineraryItem(tripId, {
+  // 1. Live Duration Calculation and Conflict Detection
+  const updateDurationAndConflict = () => {
+    const sTime = startInput.value;
+    const eTime = endInput.value;
+    const durInfo = calculateDuration(sTime, eTime);
+
+    if (durInfo.isValid) {
+      durationBadge.textContent = `⏱️ ${durInfo.text}`;
+      durationBadge.style.color = "#34d399";
+      durationBadge.style.background = "rgba(16,185,129,0.15)";
+      durationBadge.style.borderColor = "#10b981";
+    } else {
+      durationBadge.textContent = "⚠️ Invalid Times";
+      durationBadge.style.color = "#f43f5e";
+      durationBadge.style.background = "rgba(244,63,94,0.15)";
+      durationBadge.style.borderColor = "#f43f5e";
+    }
+
+    const curDay = Number(dayInput.value || 1);
+    const conflict = checkTimelineConflict(trip?.itineraryItems, curDay, sTime, eTime, itemToEdit?.id);
+
+    if (conflict.hasConflict && conflict.conflictingItem) {
+      conflictAlert.style.display = "block";
+      conflictAlert.innerHTML = `
+        <div style="background: rgba(245, 158, 11, 0.12); border: 1px solid #f59e0b; border-radius: var(--radius-md); padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
+          <div style="font-size: 0.78rem; color: #fde047; line-height: 1.4;">
+            ⚠️ <strong>Schedule Conflict:</strong> Overlaps with <strong>"${conflict.conflictingItem.title}"</strong> (${formatTime12(conflict.conflictingItem.startTime)} – ${formatTime12(conflict.conflictingItem.endTime)})
+          </div>
+          <button type="button" id="auto-resolve-conflict-btn" style="background: #f59e0b; color: #000; border: none; border-radius: var(--radius-sm); padding: 5px 12px; font-size: 0.74rem; font-weight: 700; cursor: pointer; white-space: nowrap;">
+            👉 Shift to ${formatTime12(conflict.suggestedSlot)}
+          </button>
+        </div>
+      `;
+
+      conflictAlert.querySelector("#auto-resolve-conflict-btn")?.addEventListener("click", () => {
+        startInput.value = conflict.suggestedSlot;
+        endInput.value = conflict.suggestedEnd;
+        updateDurationAndConflict();
+      });
+    } else {
+      conflictAlert.style.display = "none";
+      conflictAlert.innerHTML = "";
+    }
+  };
+
+  // 2. Render Landmark Operating Hours & Timings Card
+  const renderLandmarkCard = (lm) => {
+    if (!lm) {
+      landmarkCard.style.display = "none";
+      landmarkCard.innerHTML = "";
+      return;
+    }
+
+    currentLandmark = lm;
+    landmarkCard.style.display = "block";
+    landmarkCard.innerHTML = `
+      <div style="background: rgba(8, 12, 20, 0.95); border: 1px solid var(--border-gold); border-radius: var(--radius-md); padding: 14px 16px;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
+          <div>
+            <div style="font-size: 0.92rem; font-weight: 700; color: #fff;">🏛️ ${lm.name} <span style="font-size: 0.75rem; color: var(--gold-light);">(${lm.city}, ${lm.state})</span></div>
+            <div style="font-size: 0.78rem; color: #34d399; font-weight: 600; margin-top: 2px;">🕒 Open: ${lm.openHours}</div>
+          </div>
+          <button type="button" id="apply-landmark-timings-btn" style="background: rgba(212,175,55,0.18); border: 1px solid var(--gold-primary); color: var(--gold-light); border-radius: var(--radius-sm); padding: 5px 12px; font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: all 0.2s;">
+            ⚡ Apply Best Timing (${formatTime12(lm.defaultStartTime)} – ${formatTime12(lm.defaultEndTime)})
+          </button>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.76rem; color: var(--text-secondary); margin-bottom: 8px;">
+          <div>🌅 <strong>Ideal Slot:</strong> ${lm.idealTimeOfDay}</div>
+          <div>👥 <strong>Crowd Peak:</strong> ${lm.crowdPeak}</div>
+          <div>⏱️ <strong>Recommended Duration:</strong> ${lm.recommendedDurationMinutes} mins</div>
+          <div>🚗 <strong>Transit Buffer:</strong> +${lm.transitBufferMins} mins</div>
+        </div>
+
+        ${lm.tips ? `
+          <div style="font-size: 0.74rem; color: var(--text-muted); border-top: 1px solid rgba(255,255,255,0.06); padding-top: 6px;">
+            💡 <em>${lm.tips}</em>
+          </div>
+        ` : ''}
+      </div>
+    `;
+
+    // Map link
+    mapsLinkWrap.innerHTML = `
+      <a href="https://maps.google.com/?q=${encodeURIComponent(lm.name + ' ' + lm.city)}" target="_blank" rel="noopener" style="font-size: 0.74rem; color: var(--gold-light); text-decoration: none;">
+        🗺️ Preview on Google Maps ↗
+      </a>
+    `;
+
+    landmarkCard.querySelector("#apply-landmark-timings-btn")?.addEventListener("click", () => {
+      startInput.value = lm.defaultStartTime;
+      endInput.value = lm.defaultEndTime;
+      if (lm.category) categorySelect.value = lm.category;
+      if (lm.costEstimate && !costInput.value) costInput.value = lm.costEstimate;
+      updateDurationAndConflict();
+    });
+  };
+
+  // If initial landmark exists, render it
+  if (currentLandmark) {
+    renderLandmarkCard(currentLandmark);
+  }
+
+  // 3. Time input event listeners
+  startInput.addEventListener("input", () => {
+    // Keep duration steady by shifting end time
+    const durMins = calculateDuration(currentStartTime, currentEndTime).minutes || 90;
+    endInput.value = calculateEndTime(startInput.value, durMins);
+    currentStartTime = startInput.value;
+    currentEndTime = endInput.value;
+    updateDurationAndConflict();
+  });
+
+  endInput.addEventListener("input", () => {
+    currentEndTime = endInput.value;
+    updateDurationAndConflict();
+  });
+
+  dayInput.addEventListener("change", updateDurationAndConflict);
+
+  // 4. Time Period Presets click handler
+  modal.querySelectorAll(".time-period-preset-chip").forEach(btn => {
+    btn.addEventListener("click", () => {
+      startInput.value = btn.dataset.start;
+      endInput.value = btn.dataset.end;
+      currentStartTime = btn.dataset.start;
+      currentEndTime = btn.dataset.end;
+
+      modal.querySelectorAll(".time-period-preset-chip").forEach(b => {
+        b.style.background = "rgba(255,255,255,0.05)";
+        b.style.borderColor = "var(--border-subtle)";
+        b.style.color = "#cbd5e1";
+      });
+      btn.style.background = "rgba(212,175,55,0.22)";
+      btn.style.borderColor = "var(--gold-primary)";
+      btn.style.color = "var(--gold-light)";
+
+      updateDurationAndConflict();
+    });
+  });
+
+  // 5. Duration Presets click handler
+  modal.querySelectorAll(".duration-preset-chip").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const mins = Number(btn.dataset.minutes || 60);
+      endInput.value = calculateEndTime(startInput.value, mins);
+      currentEndTime = endInput.value;
+
+      modal.querySelectorAll(".duration-preset-chip").forEach(b => {
+        b.style.background = "rgba(255,255,255,0.05)";
+        b.style.borderColor = "rgba(255,255,255,0.12)";
+        b.style.color = "#cbd5e1";
+      });
+      btn.style.background = "rgba(212,175,55,0.22)";
+      btn.style.borderColor = "var(--gold-primary)";
+      btn.style.color = "var(--gold-light)";
+
+      updateDurationAndConflict();
+    });
+  });
+
+  // 6. Transit Buffer selection
+  modal.querySelectorAll(".transit-buffer-chip").forEach(btn => {
+    btn.addEventListener("click", () => {
+      currentTransitBuffer = Number(btn.dataset.mins || 0);
+      modal.querySelectorAll(".transit-buffer-chip").forEach(b => {
+        b.style.background = "rgba(255,255,255,0.05)";
+        b.style.borderColor = "rgba(255,255,255,0.1)";
+        b.style.color = "#cbd5e1";
+      });
+      btn.style.background = "rgba(212,175,55,0.2)";
+      btn.style.borderColor = "var(--gold-primary)";
+      btn.style.color = "var(--gold-light)";
+    });
+  });
+
+  // 7. Quick Landmark Chips click handler
+  modal.querySelectorAll(".landmark-quick-chip").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const lm = LANDMARK_TIMINGS.find(l => l.name === btn.dataset.name);
+      if (lm) {
+        if (!titleInput.value) titleInput.value = lm.name;
+        locationInput.value = `${lm.name}, ${lm.city}`;
+        categorySelect.value = lm.category;
+        if (lm.costEstimate) costInput.value = lm.costEstimate;
+        renderLandmarkCard(lm);
+      }
+    });
+  });
+
+  // 8. Location Autocomplete
+  const handleLocationSearch = (query) => {
+    const matches = findMatchingLandmarks(query, tripDest);
+    if (matches.length > 0 && query.length >= 1) {
+      dropdown.style.display = "block";
+      dropdown.innerHTML = matches.map(lm => `
+        <div class="dropdown-landmark-item" data-name="${lm.name}" style="padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.06); cursor: pointer; transition: background 0.15s;">
+          <div style="font-size: 0.84rem; font-weight: 700; color: #fff;">🏛️ ${lm.name} <span style="font-size: 0.72rem; color: var(--gold-light);">(${lm.city})</span></div>
+          <div style="font-size: 0.74rem; color: var(--text-muted); display: flex; gap: 12px; margin-top: 2px;">
+            <span>🕒 ${lm.openHours.split('|')[0]}</span>
+            <span>⏱️ ${lm.recommendedDurationMinutes}m recommended</span>
+          </div>
+        </div>
+      `).join('');
+
+      dropdown.querySelectorAll(".dropdown-landmark-item").forEach(item => {
+        item.addEventListener("click", () => {
+          const lm = LANDMARK_TIMINGS.find(l => l.name === item.dataset.name);
+          if (lm) {
+            if (!titleInput.value) titleInput.value = lm.name;
+            locationInput.value = `${lm.name}, ${lm.city}`;
+            categorySelect.value = lm.category;
+            if (lm.costEstimate) costInput.value = lm.costEstimate;
+            dropdown.style.display = "none";
+            renderLandmarkCard(lm);
+          }
+        });
+      });
+    } else {
+      dropdown.style.display = "none";
+      dropdown.innerHTML = "";
+    }
+  };
+
+  locationInput.addEventListener("input", (e) => {
+    const val = e.target.value.trim();
+    handleLocationSearch(val);
+    if (val) {
+      mapsLinkWrap.innerHTML = `
+        <a href="https://maps.google.com/?q=${encodeURIComponent(val)}" target="_blank" rel="noopener" style="font-size: 0.74rem; color: var(--gold-light); text-decoration: none;">
+          🗺️ Preview on Google Maps ↗
+        </a>
+      `;
+    } else {
+      mapsLinkWrap.innerHTML = "";
+    }
+  });
+
+  titleInput.addEventListener("input", (e) => {
+    const val = e.target.value.trim();
+    if (!locationInput.value && val.length >= 3) {
+      const match = LANDMARK_TIMINGS.find(l => l.name.toLowerCase().includes(val.toLowerCase()));
+      if (match) renderLandmarkCard(match);
+    }
+  });
+
+  document.addEventListener("click", (e) => {
+    if (!dropdown.contains(e.target) && e.target !== locationInput) {
+      dropdown.style.display = "none";
+    }
+  });
+
+  // 9. Quick Inclusion Badges Click Handler
+  modal.querySelectorAll(".inclusion-tag-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const tag = btn.dataset.tag;
+      const curText = descInput.value.trim();
+      if (!curText.includes(tag)) {
+        descInput.value = curText ? `${curText}\n• ${tag}` : `• ${tag}`;
+      }
+      btn.style.background = "rgba(212,175,55,0.2)";
+      btn.style.borderColor = "var(--gold-primary)";
+      btn.style.color = "var(--gold-light)";
+    });
+  });
+
+  // Initial duration and conflict computation
+  updateDurationAndConflict();
+
+  // 10. Form Submission
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const dayNumber = Number(dayInput.value || 1);
+    const category = categorySelect.value;
+    const title = titleInput.value.trim();
+    const location = locationInput.value.trim();
+    const startTime = startInput.value;
+    const endTime = endInput.value;
+    const costVal = costInput.value;
+    const cost = costVal ? Number(costVal) : null;
+    let description = descInput.value.trim();
+
+    if (currentTransitBuffer > 0) {
+      const bufferNote = `[Transit Buffer: +${currentTransitBuffer} mins to next stop]`;
+      if (!description.includes(bufferNote)) {
+        description = description ? `${description}\n${bufferNote}` : bufferNote;
+      }
+    }
+
+    const payload = {
       dayNumber,
       category,
       title,
       location,
       startTime,
       endTime,
-      cost: cost ? Number(cost) : null,
+      cost,
       description
-    });
+    };
+
+    const submitBtn = modal.querySelector("#save-itinerary-btn");
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Saving...";
+
+    let res;
+    if (isEdit && itemToEdit?.id) {
+      res = await appState.updateCollabItineraryItem(trip.id, itemToEdit.id, payload);
+    } else {
+      res = await appState.addCollabItineraryItem(trip.id, payload);
+    }
+
+    // Check if squad expense split was requested
+    const splitExpense = modal.querySelector("#itin-split-expense")?.checked;
+    if (splitExpense && cost && cost > 0) {
+      await appState.createCollabExpense(trip.id, {
+        amount: cost,
+        category: category === "DINING" ? "Food" : category === "STAY" ? "Stay" : category === "TRAVEL" ? "Transport" : "Activities",
+        description: `${title} (Day ${dayNumber})`,
+        splitBetweenMemberIds: (trip.members || []).map(m => m.userId)
+      });
+      appState.showToast(`💰 ₹${cost.toLocaleString()} split equally across squad!`);
+    }
 
     if (res) close();
+    else {
+      submitBtn.disabled = false;
+      submitBtn.textContent = isEdit ? '💾 Save Changes' : '+ Add to Itinerary';
+    }
   });
+}
+
+function renderAddItineraryModal(tripId, defaultDay = 1, prefill = null) {
+  const trip = appState.getState().currentCollabTrip;
+  renderItineraryActivityModal(trip || { id: tripId }, false, null, defaultDay, prefill);
+}
+
+function renderEditItineraryModal(trip, item) {
+  renderItineraryActivityModal(trip, true, item, item.dayNumber);
 }
 
 // =============================================================================

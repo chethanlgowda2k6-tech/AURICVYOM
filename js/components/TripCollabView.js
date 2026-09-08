@@ -76,7 +76,7 @@ export function renderTripCollabView() {
             </div>
             <div style="display: flex; gap: 14px; flex-wrap: wrap;">
               <button class="btn-outline-glass" id="open-join-trip-modal-btn" style="padding: 12px 24px; font-size: 0.95rem;">
-                🔑 Join via Invite Code
+                🔑 Join with Link or Code
               </button>
               <button class="btn-primary-gold" id="open-create-trip-modal-btn" style="padding: 12px 28px; font-size: 0.95rem;">
                 ✨ Create Shared Journey
@@ -169,7 +169,7 @@ export function renderTripCollabView() {
                   ✨ Create Collaborative Trip
                 </button>
                 <button class="btn-outline-glass" id="empty-join-trip-btn" style="padding: 12px 24px;">
-                  🔑 Join with Code
+                  🔑 Join with Link or Code
                 </button>
               </div>
             </div>
@@ -260,10 +260,14 @@ export function renderTripCollabView() {
                 ${trip.name}
               </h1>
 
-              <!-- Invite Codes Badges -->
+              <!-- Invite Codes & Share Link Controls -->
               <div style="display: flex; gap: 12px; align-items: center; margin-top: 16px; flex-wrap: wrap;">
+                <button id="open-share-trip-btn" class="btn-primary-gold" style="padding: 8px 18px; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 15px rgba(212,175,55,0.25); border-radius: var(--radius-md); font-weight: 700;">
+                  <span>🔗</span> Share Invite Link (WhatsApp & Social)
+                </button>
+
                 <div style="background: rgba(0,0,0,0.65); border: 1px dashed var(--border-gold); border-radius: var(--radius-md); padding: 6px 14px; display: flex; align-items: center; gap: 10px;">
-                  <span style="font-size: 0.75rem; color: var(--text-secondary);">Invite Code:</span>
+                  <span style="font-size: 0.75rem; color: var(--text-secondary);">Code:</span>
                   <strong style="color: var(--gold-light); font-family: monospace; font-size: 0.95rem; letter-spacing: 0.05em;">${trip.inviteCode}</strong>
                   <button id="copy-invite-code-btn" style="background: none; border: none; cursor: pointer; color: var(--gold-primary); padding: 0 4px;" title="Copy Invite Code">
                     📋
@@ -272,7 +276,7 @@ export function renderTripCollabView() {
 
                 ${isOwner && trip.coOwnerInviteCode ? `
                   <div style="background: rgba(212,175,55,0.15); border: 1px solid var(--gold-primary); border-radius: var(--radius-md); padding: 6px 14px; display: flex; align-items: center; gap: 10px;">
-                    <span style="font-size: 0.75rem; color: var(--gold-light);">👑 2nd Co-Owner Code:</span>
+                    <span style="font-size: 0.75rem; color: var(--gold-light);">👑 2nd Co-Owner:</span>
                     <strong style="color: #fff; font-family: monospace; font-size: 0.95rem;">${trip.coOwnerInviteCode}</strong>
                     <button id="copy-coowner-code-btn" style="background: none; border: none; cursor: pointer; color: var(--gold-light); padding: 0 4px;" title="Copy Co-Owner Code">
                       📋
@@ -829,52 +833,149 @@ export function renderTripCollabView() {
       });
     }
 
-    // TAB 5: LIVE CHAT
+    // TAB 5: LIVE CHAT & SQUAD DISCUSSIONS
     else if (activeCollabWorkspaceTab === "chat") {
       tabMount.innerHTML = `
-        <div style="background: var(--bg-card); border: 1.5px solid var(--border-gold); border-radius: var(--radius-lg); overflow: hidden; display: flex; flex-direction: column; height: 580px; box-shadow: var(--shadow-lg);">
+        <div style="background: var(--bg-card); border: 1.5px solid var(--border-gold); border-radius: var(--radius-lg); overflow: hidden; display: flex; flex-direction: column; height: 620px; box-shadow: var(--shadow-lg); position: relative;">
           <!-- Chat Stream Header -->
-          <div style="padding: 16px 24px; border-bottom: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center; background: rgba(8,12,20,0.85);">
-            <div style="display: flex; align-items: center; gap: 10px;">
-              <span style="width: 10px; height: 10px; border-radius: 50%; background: #10b981; display: inline-block;"></span>
-              <strong style="color: var(--text-white); font-size: 0.95rem;">Live Squad Chat</strong>
-              <span style="font-size: 0.8rem; color: var(--text-muted);">• Real-time SSE Sync</span>
+          <div style="padding: 16px 24px; border-bottom: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center; background: rgba(8,12,20,0.94); backdrop-filter: blur(12px);">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="position: relative;">
+                <span style="width: 10px; height: 10px; border-radius: 50%; background: #10b981; display: inline-block; box-shadow: 0 0 8px #10b981;"></span>
+              </div>
+              <div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <strong style="color: var(--text-white); font-size: 1rem; font-family: var(--font-serif); letter-spacing: 0.02em;">Squad Lounge Chat</strong>
+                  <span style="background: rgba(212,175,55,0.15); color: var(--gold-light); border: 1px solid rgba(212,175,55,0.3); border-radius: 9999px; padding: 2px 8px; font-size: 0.72rem; font-weight: 600;">
+                    📍 ${trip.destination || trip.name}
+                  </span>
+                </div>
+                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">
+                  Real-time SSE sync • End-to-end squad communication
+                </div>
+              </div>
             </div>
-            <span style="font-size: 0.8rem; color: var(--gold-light);">${members.length} members connected</span>
+
+            <!-- Online Squad Avatars Ribbon -->
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <div style="display: flex; margin-right: 4px;">
+                ${members.slice(0, 4).map((m, idx) => `
+                  <img src="${m.user?.profileImage || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=80&q=80'}" 
+                       title="${m.user?.name} (${m.role})" 
+                       style="width: 28px; height: 28px; border-radius: 50%; object-fit: cover; border: 2px solid var(--bg-surface); margin-left: ${idx > 0 ? '-8px' : '0'};" />
+                `).join('')}
+              </div>
+              <span style="font-size: 0.8rem; color: var(--gold-light); font-weight: 600;">
+                ${members.length} Squad ${members.length === 1 ? 'Member' : 'Members'}
+              </span>
+            </div>
           </div>
 
           <!-- Message History Container -->
-          <div id="collab-chat-messages" style="flex-grow: 1; padding: 24px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; scroll-behavior: smooth;">
+          <div id="collab-chat-messages" style="flex-grow: 1; padding: 24px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; scroll-behavior: smooth; background: radial-gradient(circle at 50% 0%, rgba(212,175,55,0.03), transparent 70%);">
             ${messages.length > 0 ? messages.map(msg => {
               const isMine = msg.senderId === currentUser.id;
               const senderMember = members.find(m => m.userId === msg.senderId);
               const isSenderOwner = senderMember?.role === 'OWNER';
+              
+              const msgDate = new Date(msg.createdAt);
+              const now = new Date();
+              const isToday = msgDate.toDateString() === now.toDateString();
+              const timeStr = msgDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+              const displayTime = isToday ? timeStr : `${msgDate.toLocaleDateString([], { month: 'short', day: 'numeric' })} ${timeStr}`;
+
+              // Check if message is pure emojis (1 to 4 emojis)
+              const trimmedText = (msg.text || '').trim();
+              const isOnlyEmojis = /^(\p{Extended_Pictographic}|\s)+$/u.test(trimmedText) && trimmedText.length <= 16;
 
               return `
-                <div style="display: flex; gap: 12px; align-self: ${isMine ? 'flex-end' : 'flex-start'}; max-width: 80%; flex-direction: ${isMine ? 'row-reverse' : 'row'};">
-                  <img src="${msg.sender?.profileImage || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80'}" style="width: 34px; height: 34px; border-radius: 50%; object-fit: cover; border: 1px solid ${isSenderOwner ? 'var(--gold-primary)' : 'rgba(255,255,255,0.2)'};" />
+                <div style="display: flex; gap: 12px; align-self: ${isMine ? 'flex-end' : 'flex-start'}; max-width: 82%; flex-direction: ${isMine ? 'row-reverse' : 'row'};">
+                  <img src="${msg.sender?.profileImage || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80'}" 
+                       style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 1.5px solid ${isSenderOwner ? 'var(--gold-primary)' : 'rgba(255,255,255,0.2)'}; box-shadow: ${isSenderOwner ? '0 0 8px rgba(212,175,55,0.4)' : 'none'}; flex-shrink: 0;" />
                   <div>
-                    <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px; text-align: ${isMine ? 'right' : 'left'};">
-                      ${msg.sender?.name} ${isSenderOwner ? '👑' : ''} • ${new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 5px; display: flex; align-items: center; gap: 6px; justify-content: ${isMine ? 'flex-end' : 'flex-start'};">
+                      <strong style="color: ${isMine ? 'var(--gold-light)' : 'var(--text-white)'};">
+                        ${isMine ? 'You' : (msg.sender?.name || 'Noble Traveler')}
+                      </strong>
+                      ${isSenderOwner ? '<span title="Trip Co-Owner" style="font-size: 0.8rem;">👑</span>' : ''}
+                      <span style="font-size: 0.7rem; color: rgba(255,255,255,0.4);">• ${displayTime}</span>
                     </div>
-                    <div style="background: ${isMine ? 'linear-gradient(135deg, rgba(212,175,55,0.25), rgba(212,175,55,0.1))' : 'rgba(255,255,255,0.06)'}; border: 1px solid ${isMine ? 'var(--border-gold)' : 'var(--border-subtle)'}; color: var(--text-white); padding: 12px 18px; border-radius: var(--radius-md); font-size: 0.95rem; line-height: 1.5; word-break: break-word;">
-                      ${msg.text}
-                    </div>
+
+                    ${isOnlyEmojis ? `
+                      <div style="font-size: 2.2rem; line-height: 1.2; padding: 4px 6px; text-align: ${isMine ? 'right' : 'left'}; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.6));">
+                        ${trimmedText}
+                      </div>
+                    ` : `
+                      <div style="background: ${isMine ? 'linear-gradient(135deg, rgba(212,175,55,0.22), rgba(212,175,55,0.08))' : 'rgba(255,255,255,0.05)'}; border: 1.5px solid ${isMine ? 'var(--border-gold)' : 'var(--border-subtle)'}; color: var(--text-white); padding: 12px 18px; border-radius: ${isMine ? '16px 16px 4px 16px' : '16px 16px 16px 4px'}; font-size: 0.95rem; line-height: 1.55; word-break: break-word; box-shadow: ${isMine ? '0 4px 20px rgba(212,175,55,0.15)' : '0 4px 16px rgba(0,0,0,0.4)'};">
+                        ${msg.text}
+                      </div>
+                    `}
                   </div>
                 </div>
               `;
             }).join('') : `
-              <div style="margin: auto; text-align: center; color: var(--text-muted); font-size: 0.9rem;">
-                💬 No messages yet. Say hello to your squad!
+              <div style="margin: auto; max-width: 440px; text-align: center; padding: 36px 24px; background: rgba(8,12,20,0.6); border: 1px dashed var(--border-gold); border-radius: var(--radius-lg);">
+                <div style="font-size: 2.6rem; margin-bottom: 12px;">💬</div>
+                <h4 style="font-family: var(--font-serif); font-size: 1.2rem; color: var(--text-white); margin-bottom: 6px;">
+                  Expedition Squad Chat
+                </h4>
+                <p style="color: var(--text-secondary); font-size: 0.85rem; line-height: 1.6; margin-bottom: 20px;">
+                  Coordinate meeting times, suggest royal dinners, share excitement, or drop quick emojis to your squad.
+                </p>
+                <div style="font-size: 0.75rem; color: var(--gold-light); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 10px;">
+                  Quick Icebreakers:
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                  <button type="button" class="chat-icebreaker-chip" data-msg="✈️ Squad, ready for our adventure? Let's check Day 1!" style="background: rgba(255,255,255,0.06); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 8px 14px; color: var(--text-white); font-size: 0.82rem; cursor: pointer; text-align: left; transition: all 0.2s ease;">
+                    ✈️ "Squad, ready for our adventure? Let's check Day 1!"
+                  </button>
+                  <button type="button" class="chat-icebreaker-chip" data-msg="🍽️ What time shall we book dinner tonight?" style="background: rgba(255,255,255,0.06); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 8px 14px; color: var(--text-white); font-size: 0.82rem; cursor: pointer; text-align: left; transition: all 0.2s ease;">
+                    🍽️ "What time shall we book dinner tonight?"
+                  </button>
+                  <button type="button" class="chat-icebreaker-chip" data-msg="📸 Don't forget to take group photos at the palace!" style="background: rgba(255,255,255,0.06); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 8px 14px; color: var(--text-white); font-size: 0.82rem; cursor: pointer; text-align: left; transition: all 0.2s ease;">
+                    📸 "Don't forget to take group photos at the palace!"
+                  </button>
+                </div>
               </div>
             `}
           </div>
 
+          <!-- Quick Emoji Ribbon -->
+          <div id="collab-quick-emoji-ribbon" style="padding: 8px 18px; background: rgba(14,20,30,0.95); border-top: 1px solid var(--border-subtle); display: flex; align-items: center; gap: 8px; overflow-x: auto; scrollbar-width: none;">
+            <span style="font-size: 0.72rem; color: var(--gold-light); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; margin-right: 4px;">
+              Quick:
+            </span>
+            ${['❤️', '🔥', '✈️', '🏰', '🥂', '👍', '😂', '🌅', '📸', '📍', '🐘', '👑', '✨', '🌴', '☕', '🙏', '🎉', '🤩'].map(emoji => `
+              <button type="button" class="quick-emoji-chip" data-emoji="${emoji}" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(212,175,55,0.25); border-radius: 9999px; padding: 4px 10px; font-size: 1.15rem; cursor: pointer; transition: transform 0.15s ease, background 0.15s ease; display: inline-flex; align-items: center; justify-content: center; user-select: none;" title="Insert ${emoji}">
+                ${emoji}
+              </button>
+            `).join('')}
+          </div>
+
+          <!-- Full Floating Emoji Drawer / Popover -->
+          <div id="collab-emoji-picker-drawer" style="display: none; position: absolute; bottom: 82px; left: 16px; width: 340px; max-width: calc(100% - 32px); background: rgba(8,12,20,0.98); backdrop-filter: blur(16px); border: 1.5px solid var(--border-gold); border-radius: var(--radius-lg); box-shadow: 0 10px 35px rgba(0,0,0,0.85); z-index: 50; overflow: hidden;">
+            <!-- Category Tabs -->
+            <div style="display: flex; border-bottom: 1px solid var(--border-subtle); background: rgba(255,255,255,0.03);">
+              <button type="button" class="emoji-cat-tab active" data-cat="travel" style="flex: 1; padding: 10px 4px; background: rgba(212,175,55,0.15); border: none; border-bottom: 2px solid var(--gold-primary); color: var(--gold-light); font-size: 0.8rem; font-weight: 600; cursor: pointer;">✈️ Travel</button>
+              <button type="button" class="emoji-cat-tab" data-cat="vibes" style="flex: 1; padding: 10px 4px; background: none; border: none; color: var(--text-muted); font-size: 0.8rem; font-weight: 600; cursor: pointer;">😊 Vibes</button>
+              <button type="button" class="emoji-cat-tab" data-cat="dining" style="flex: 1; padding: 10px 4px; background: none; border: none; color: var(--text-muted); font-size: 0.8rem; font-weight: 600; cursor: pointer;">🍷 Dining</button>
+              <button type="button" class="emoji-cat-tab" data-cat="signals" style="flex: 1; padding: 10px 4px; background: none; border: none; color: var(--text-muted); font-size: 0.8rem; font-weight: 600; cursor: pointer;">⏰ Signals</button>
+            </div>
+
+            <!-- Emoji Grid Mount -->
+            <div id="emoji-grid-content" style="padding: 14px; max-height: 200px; overflow-y: auto; display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px;">
+              <!-- Populated via JS -->
+            </div>
+          </div>
+
           <!-- Chat Input Bar -->
-          <form id="collab-chat-form" style="padding: 16px 20px; border-top: 1px solid var(--border-subtle); background: rgba(8,12,20,0.95); display: flex; gap: 12px;">
-            <input type="text" id="collab-chat-input" placeholder="Type a message to your squad..." style="flex-grow: 1; background: rgba(255,255,255,0.06); border: 1px solid var(--border-gold); border-radius: var(--radius-full); padding: 12px 20px; color: #fff; font-size: 0.95rem; outline: none;" autocomplete="off" />
-            <button type="submit" class="btn-primary-gold" style="padding: 10px 24px; border-radius: var(--radius-full);">
-              Send
+          <form id="collab-chat-form" style="padding: 14px 20px; border-top: 1px solid var(--border-subtle); background: rgba(8,12,20,0.96); display: flex; align-items: center; gap: 10px;">
+            <button type="button" id="toggle-emoji-picker-btn" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(212,175,55,0.3); width: 42px; height: 42px; border-radius: 50%; font-size: 1.3rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease; flex-shrink: 0;" title="Open Emoji Tray">
+              😊
+            </button>
+            <input type="text" id="collab-chat-input" placeholder="Type a message or click emojis..." style="flex-grow: 1; background: rgba(255,255,255,0.06); border: 1px solid var(--border-gold); border-radius: var(--radius-full); padding: 12px 20px; color: #fff; font-size: 0.95rem; outline: none; transition: border-color 0.2s, box-shadow 0.2s;" autocomplete="off" />
+            <button type="submit" class="btn-primary-gold" style="padding: 10px 24px; border-radius: var(--radius-full); display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0;">
+              <span>Send</span> <span>➤</span>
             </button>
           </form>
         </div>
@@ -884,13 +985,115 @@ export function renderTripCollabView() {
       const chatBox = tabMount.querySelector("#collab-chat-messages");
       if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
 
+      const chatInput = tabMount.querySelector("#collab-chat-input");
+      const emojiDrawer = tabMount.querySelector("#collab-emoji-picker-drawer");
+      const toggleEmojiBtn = tabMount.querySelector("#toggle-emoji-picker-btn");
+      const emojiGrid = tabMount.querySelector("#emoji-grid-content");
+
+      // Emoji Dictionary for categories
+      const EMOJI_CATEGORIES = {
+        travel: ['✈️', '🏰', '🧳', '🌅', '🌴', '👑', '✨', '🥂', '🏨', '🗺️', '📸', '🐘', '☕', '🏖️', '🛕', '🚂', '🚕', '🛥️', '🤿', '🧘', '🏕️', '⛰️', '🌄', '🌸', '🚢', '🎟️', '⛺', '🛺'],
+        vibes: ['👍', '❤️', '🔥', '🙌', '😍', '😂', '🎉', '💯', '🤩', '👏', '🙏', '🥳', '😎', '🤝', '💖', '💬', '⭐', '🚀', '🪄', '💫', '💃', '🕺', '🥰', '🤙', '✨', '💐', '🎊', '👌'],
+        dining: ['🍷', '🍸', '🍹', '🍛', '🥘', '🍕', '☕', '🍾', '🥂', '🍨', '🍱', '🥪', '🥗', '🥐', '🍰', '🍇', '🍻', '🍽️', '🌮', '🍩', '🍫', '🍵', '🫖', '🥥', '🍦', '🧁', '🍿', '🥢'],
+        signals: ['⏰', '⏳', '📍', '💡', '📌', '👀', '⚡', '✅', '❌', '❓', '🎯', '📅', '🧭', '🏷️', '🔑', '🔔', '📢', '📝', '💰', '🛡️', '🎫', '🛒', '🚩', '🏁', '🛑', '🔊', '⚠️', '📦']
+      };
+
+      const renderCategoryEmojis = (catKey) => {
+        if (!emojiGrid) return;
+        const list = EMOJI_CATEGORIES[catKey] || EMOJI_CATEGORIES.travel;
+        emojiGrid.innerHTML = list.map(e => `
+          <button type="button" class="drawer-emoji-item" data-emoji="${e}" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; font-size: 1.35rem; padding: 6px 0; cursor: pointer; transition: transform 0.15s, background 0.15s; display: flex; align-items: center; justify-content: center;">
+            ${e}
+          </button>
+        `).join('');
+
+        emojiGrid.querySelectorAll(".drawer-emoji-item").forEach(b => {
+          b.addEventListener("click", () => {
+            const em = b.dataset.emoji;
+            if (chatInput) {
+              const start = chatInput.selectionStart || chatInput.value.length;
+              const end = chatInput.selectionEnd || chatInput.value.length;
+              chatInput.value = chatInput.value.substring(0, start) + em + chatInput.value.substring(end);
+              chatInput.selectionStart = chatInput.selectionEnd = start + em.length;
+              chatInput.focus();
+            }
+          });
+        });
+      };
+
+      renderCategoryEmojis("travel");
+
+      // Category tab clicks
+      tabMount.querySelectorAll(".emoji-cat-tab").forEach(tabBtn => {
+        tabBtn.addEventListener("click", () => {
+          tabMount.querySelectorAll(".emoji-cat-tab").forEach(t => {
+            t.style.background = "none";
+            t.style.borderBottom = "none";
+            t.style.color = "var(--text-muted)";
+          });
+          tabBtn.style.background = "rgba(212,175,55,0.15)";
+          tabBtn.style.borderBottom = "2px solid var(--gold-primary)";
+          tabBtn.style.color = "var(--gold-light)";
+          renderCategoryEmojis(tabBtn.dataset.cat);
+        });
+      });
+
+      // Toggle emoji drawer
+      toggleEmojiBtn?.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (emojiDrawer) {
+          const isHidden = emojiDrawer.style.display === "none";
+          emojiDrawer.style.display = isHidden ? "block" : "none";
+          toggleEmojiBtn.style.transform = isHidden ? "scale(1.15)" : "scale(1)";
+          toggleEmojiBtn.style.borderColor = isHidden ? "var(--gold-primary)" : "rgba(212,175,55,0.3)";
+        }
+      });
+
+      // Quick Emoji Ribbon click
+      tabMount.querySelectorAll(".quick-emoji-chip").forEach(chip => {
+        chip.addEventListener("click", () => {
+          const em = chip.dataset.emoji;
+          if (chatInput) {
+            chatInput.value = (chatInput.value ? chatInput.value + " " : "") + em;
+            chatInput.focus();
+          }
+        });
+      });
+
+      // Icebreaker chips click
+      tabMount.querySelectorAll(".chat-icebreaker-chip").forEach(chip => {
+        chip.addEventListener("click", () => {
+          if (chatInput) {
+            chatInput.value = chip.dataset.msg;
+            chatInput.focus();
+          }
+        });
+      });
+
+      // Close drawer on click outside
+      document.addEventListener("click", (evt) => {
+        if (emojiDrawer && emojiDrawer.style.display !== "none") {
+          if (!emojiDrawer.contains(evt.target) && evt.target !== toggleEmojiBtn) {
+            emojiDrawer.style.display = "none";
+            if (toggleEmojiBtn) {
+              toggleEmojiBtn.style.transform = "scale(1)";
+              toggleEmojiBtn.style.borderColor = "rgba(212,175,55,0.3)";
+            }
+          }
+        }
+      });
+
+      // Send form
       tabMount.querySelector("#collab-chat-form")?.addEventListener("submit", async (e) => {
         e.preventDefault();
-        const input = tabMount.querySelector("#collab-chat-input");
-        const text = input?.value.trim();
+        const text = chatInput?.value.trim();
         if (text) {
-          input.value = "";
+          chatInput.value = "";
+          if (emojiDrawer) emojiDrawer.style.display = "none";
           await appState.sendCollabMessage(trip.id, text);
+          if (chatBox) {
+            setTimeout(() => { chatBox.scrollTop = chatBox.scrollHeight; }, 60);
+          }
         }
       });
     }
@@ -907,6 +1110,11 @@ export function renderTripCollabView() {
       btn.addEventListener("click", () => {
         appState.setActiveCollabWorkspaceTab(btn.dataset.tab);
       });
+    });
+
+    // Share Invite Link button (WhatsApp & Social)
+    container.querySelector("#open-share-trip-btn")?.addEventListener("click", () => {
+      renderShareTripModal(trip);
     });
 
     // Copy Invite Code button
@@ -936,6 +1144,15 @@ export function renderTripCollabView() {
 
   // Event delegation on container for robust button handling
   container.addEventListener("click", (e) => {
+    const shareBtn = e.target.closest("#open-share-trip-btn");
+    if (shareBtn) {
+      e.preventDefault();
+      e.stopPropagation();
+      const currentTrip = appState.getState().currentCollabTrip;
+      if (currentTrip) renderShareTripModal(currentTrip);
+      return;
+    }
+
     const createBtn = e.target.closest("#open-create-trip-modal-btn, #empty-create-trip-btn");
     if (createBtn) {
       e.preventDefault();
@@ -1142,31 +1359,42 @@ function renderCreateTripModal() {
 }
 
 // =============================================================================
-// MODAL 2: JOIN TRIP VIA INVITE CODE
+// MODAL 2: JOIN TRIP VIA INVITE CODE OR SHAREABLE LINK
 // =============================================================================
-function renderJoinTripModal() {
+export function renderJoinTripModal(prefillCode = "") {
   document.querySelectorAll("#join-collab-trip-modal").forEach(el => el.remove());
   const modal = document.createElement("div");
   modal.className = "auric-modal-backdrop modal-overlay-backdrop active";
   modal.id = "join-collab-trip-modal";
 
+  const { isAuthenticated, currentUser } = appState.getState();
+
   modal.innerHTML = `
-    <div class="modal-window-container" style="max-width: 500px; padding: 32px;" id="join-trip-modal-window">
+    <div class="modal-window-container" style="max-width: 520px; padding: 32px;" id="join-trip-modal-window">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <h3 style="font-family: var(--font-serif); font-size: 1.5rem; color: var(--text-white);">
-          🔑 Join Collaborative Journey
-        </h3>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 1.6rem;">🔑</span>
+          <div>
+            <h3 style="font-family: var(--font-serif); font-size: 1.45rem; color: var(--text-white); margin: 0;">
+              Join Collaborative Journey
+            </h3>
+            <div style="font-size: 0.78rem; color: var(--gold-light); margin-top: 2px;">
+              Join with 1-click link or unique invite code
+            </div>
+          </div>
+        </div>
         <button id="close-join-trip-modal" style="background: none; border: none; font-size: 1.5rem; color: #fff; cursor: pointer;">✕</button>
       </div>
 
-      <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 20px;">
-        Enter the 8-character invite code provided by your trip co-owners (e.g. <code>VYOM-XXXX</code> or <code>CO-XXXX</code>).
+      <p style="color: var(--text-secondary); font-size: 0.88rem; margin-bottom: 20px; line-height: 1.5;">
+        Paste your invite link or enter the 8-character squad invite code (e.g. <code>VYOM-XXXX</code> or <code>CO-XXXX</code>).
       </p>
 
       <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-        <input type="text" id="join-invite-code-input" placeholder="VYOM-XXXX" maxlength="12"
-               style="flex-grow: 1; text-transform: uppercase; font-family: monospace; font-size: 1.1rem; font-weight: 700; background: rgba(255,255,255,0.06); border: 1.5px solid var(--border-gold); border-radius: var(--radius-md); padding: 12px 16px; color: var(--gold-light); outline: none;" />
-        <button id="preview-code-btn" class="btn-outline-glass" style="padding: 10px 18px;">
+        <input type="text" id="join-invite-code-input" placeholder="VYOM-XXXX or paste link" maxlength="80"
+               value="${prefillCode}"
+               style="flex-grow: 1; text-transform: uppercase; font-family: monospace; font-size: 1.05rem; font-weight: 700; background: rgba(255,255,255,0.06); border: 1.5px solid var(--border-gold); border-radius: var(--radius-md); padding: 12px 16px; color: var(--gold-light); outline: none;" />
+        <button id="preview-code-btn" class="btn-outline-glass" style="padding: 10px 18px; white-space: nowrap;">
           Preview
         </button>
       </div>
@@ -1194,36 +1422,307 @@ function renderJoinTripModal() {
 
   const previewMount = modal.querySelector("#join-preview-mount");
   const codeInput = modal.querySelector("#join-invite-code-input");
+  const confirmBtn = modal.querySelector("#confirm-join-trip-btn");
 
-  modal.querySelector("#preview-code-btn")?.addEventListener("click", async () => {
-    const code = codeInput.value.trim();
+  const cleanRawCode = (raw) => {
+    let text = (raw || "").trim();
+    if (text.includes("join=")) {
+      text = text.split("join=")[1].split("&")[0];
+    } else if (text.includes("#join-")) {
+      text = text.split("#join-")[1].split("&")[0];
+    }
+    return text.toUpperCase();
+  };
+
+  const doPreview = async () => {
+    const code = cleanRawCode(codeInput?.value);
     if (!code) return;
-    if (previewMount) previewMount.innerHTML = `<div style="color: var(--gold-light); font-size: 0.85rem;">Checking code...</div>`;
+    if (previewMount) previewMount.innerHTML = `<div style="color: var(--gold-light); font-size: 0.85rem; padding: 8px;">Checking expedition details...</div>`;
+    
     const res = await appState.previewInviteCode(code);
     if (res.success && previewMount) {
       const d = res.data;
       previewMount.innerHTML = `
-        <div style="background: rgba(8,12,20,0.85); border: 1px solid var(--border-gold); border-radius: var(--radius-md); padding: 16px;">
-          <div style="font-size: 0.75rem; color: ${d.isCoOwnerCode ? 'var(--gold-primary)' : 'var(--text-muted)'}; font-weight: 700; text-transform: uppercase;">
-            ${d.isCoOwnerCode ? '👑 2nd Co-Owner Invite Slot' : '👥 Member Invite'}
+        <div style="background: rgba(8,12,20,0.92); border: 1.5px solid var(--border-gold); border-radius: var(--radius-md); padding: 18px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <span style="font-size: 0.75rem; color: ${d.isCoOwnerCode ? 'var(--gold-primary)' : 'var(--gold-light)'}; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">
+              ${d.isCoOwnerCode ? '👑 2nd Co-Owner Invite Slot' : '👥 Squad Member Invite'}
+            </span>
+            <span style="font-size: 0.75rem; color: #10b981; font-weight: 600;">✓ Active Code</span>
           </div>
-          <div style="font-family: var(--font-serif); font-size: 1.2rem; color: #fff; margin: 4px 0;">${d.name}</div>
-          <div style="font-size: 0.85rem; color: var(--text-secondary);">📍 ${d.destination} • ${d.durationDays} Days (${d.memberCount} members)</div>
+          <div style="font-family: var(--font-serif); font-size: 1.35rem; color: #fff; margin-bottom: 6px;">${d.name}</div>
+          <div style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 12px;">
+            📍 ${d.destination} • 🗓️ ${d.durationDays || '5'} Days • 👥 ${d.memberCount} Current Members
+          </div>
+
+          ${!isAuthenticated ? `
+            <div style="background: rgba(212,175,55,0.1); border: 1px dashed var(--border-gold); border-radius: var(--radius-sm); padding: 12px; margin-top: 10px; font-size: 0.82rem; color: var(--gold-light);">
+              ✨ Sign in or register to join this team immediately upon logging in!
+            </div>
+          ` : ''}
         </div>
       `;
+
+      if (confirmBtn) {
+        confirmBtn.textContent = isAuthenticated ? "✨ Accept & Join Trip" : "👑 Sign In to Join Squad";
+      }
     } else if (previewMount) {
-      previewMount.innerHTML = `<div style="color: #f43f5e; font-size: 0.85rem;">❌ Invalid or expired invite code</div>`;
+      previewMount.innerHTML = `<div style="color: #f43f5e; font-size: 0.85rem; padding: 8px;">❌ Invalid or expired invite code</div>`;
     }
+  };
+
+  modal.querySelector("#preview-code-btn")?.addEventListener("click", doPreview);
+
+  // Auto preview if prefilled
+  if (prefillCode) {
+    doPreview();
+  }
+
+  // Auto preview on paste
+  codeInput?.addEventListener("paste", () => {
+    setTimeout(doPreview, 100);
   });
 
-  modal.querySelector("#confirm-join-trip-btn")?.addEventListener("click", async () => {
-    const code = codeInput.value.trim();
-    if (!code) return;
+  confirmBtn?.addEventListener("click", async () => {
+    const code = cleanRawCode(codeInput?.value);
+    if (!code) {
+      appState.showToast("Please enter an invite code or link");
+      return;
+    }
+
+    if (!isAuthenticated) {
+      // Save pending code and prompt sign in
+      localStorage.setItem("auricvyom_pending_invite_code", code);
+      sessionStorage.setItem("auricvyom_pending_invite_code", code);
+      close();
+      appState.showToast("👑 Please sign in to join your squad!");
+      appState.openAuth("login");
+      return;
+    }
+
     const res = await appState.joinCollabTrip(code);
     if (res) {
       close();
     }
   });
+}
+
+// =============================================================================
+// MODAL 2B: SHARE COLLABORATIVE EXPEDITION (WHATSAPP & SOCIAL MEDIA)
+// =============================================================================
+export function renderShareTripModal(trip) {
+  document.querySelectorAll("#share-collab-trip-modal").forEach(el => el.remove());
+  const modal = document.createElement("div");
+  modal.className = "auric-modal-backdrop modal-overlay-backdrop active";
+  modal.id = "share-collab-trip-modal";
+
+  const { currentUser } = appState.getState();
+  const isOwner = trip.members?.some(m => m.userId === currentUser?.id && m.role === "OWNER") || trip.userRole === "OWNER";
+  const hasCoOwnerSlot = isOwner && trip.coOwnerInviteCode;
+
+  let activeCode = trip.inviteCode;
+  let activeRoleLabel = "Squad Member";
+
+  const buildShareData = (code, roleLabel) => {
+    const origin = window.location.origin;
+    const shareUrl = `${origin}/?join=${encodeURIComponent(code)}`;
+    const tripTitle = trip.name || `Expedition to ${trip.destination}`;
+    const destination = trip.destination || "India";
+    const duration = trip.durationDays || 5;
+
+    const whatsappText = `✨ Join our luxury expedition to ${destination} on AuricVyom! ✈️🏰\n\n📌 Journey: ${tripTitle} (${duration} Days)\n👑 Role: ${roleLabel}\n\n👉 Click here to join our squad directly:\n${shareUrl}`;
+    const telegramText = `Join our luxury expedition to ${destination} on AuricVyom! ✈️🏰 (${tripTitle})`;
+    const instagramCaption = `Pack your bags! You're invited to our collaborative expedition to ${destination} on AuricVyom. Tap the link to join our squad: ${shareUrl} ✈️🏰`;
+
+    return { shareUrl, whatsappText, telegramText, instagramCaption };
+  };
+
+  const renderModalContent = () => {
+    const { shareUrl, whatsappText, telegramText, instagramCaption } = buildShareData(activeCode, activeRoleLabel);
+
+    modal.innerHTML = `
+      <div class="modal-window-container" style="max-width: 560px; padding: 32px;" id="share-trip-modal-window">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 1.6rem;">🔗</span>
+            <div>
+              <h3 style="font-family: var(--font-serif); font-size: 1.4rem; color: var(--text-white); margin: 0;">
+                Share Expedition Squad Link
+              </h3>
+              <div style="font-size: 0.78rem; color: var(--gold-light); margin-top: 2px;">
+                Invite friends via WhatsApp, Instagram, Telegram & 1-Click Link
+              </div>
+            </div>
+          </div>
+          <button id="close-share-trip-modal" style="background: none; border: none; font-size: 1.5rem; color: #fff; cursor: pointer;">✕</button>
+        </div>
+
+        <!-- Trip Summary Header Card -->
+        <div style="background: rgba(8,12,20,0.85); border: 1px solid var(--border-gold); border-radius: var(--radius-md); padding: 14px 18px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <div style="font-family: var(--font-serif); font-size: 1.1rem; color: var(--text-white); font-weight: 600;">
+              ${trip.name}
+            </div>
+            <div style="font-size: 0.82rem; color: var(--text-secondary); margin-top: 2px;">
+              📍 ${trip.destination} • 🗓️ ${trip.durationDays} Days • 👥 ${trip.members?.length || 0} Members
+            </div>
+          </div>
+          <span style="background: rgba(212,175,55,0.15); color: var(--gold-light); border: 1px solid rgba(212,175,55,0.3); border-radius: 9999px; padding: 4px 12px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase;">
+            ${activeRoleLabel}
+          </span>
+        </div>
+
+        ${hasCoOwnerSlot ? `
+          <!-- Role Switcher Pill Bar (for Owners) -->
+          <div style="display: flex; gap: 8px; margin-bottom: 20px; background: rgba(255,255,255,0.04); padding: 4px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+            <button type="button" id="share-tab-member" class="share-role-tab" style="flex: 1; padding: 8px 12px; border: none; border-radius: var(--radius-sm); font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.2s; background: ${activeCode === trip.inviteCode ? 'var(--gold-primary)' : 'transparent'}; color: ${activeCode === trip.inviteCode ? '#000' : 'var(--text-muted)'};">
+              👥 Squad Member Link
+            </button>
+            <button type="button" id="share-tab-coowner" class="share-role-tab" style="flex: 1; padding: 8px 12px; border: none; border-radius: var(--radius-sm); font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.2s; background: ${activeCode === trip.coOwnerInviteCode ? 'var(--gold-primary)' : 'transparent'}; color: ${activeCode === trip.coOwnerInviteCode ? '#000' : 'var(--text-muted)'};">
+              👑 2nd Co-Owner Link
+            </button>
+          </div>
+        ` : ''}
+
+        <!-- 1-Click Direct Join URL Bar -->
+        <div style="margin-bottom: 22px;">
+          <label style="display: block; font-size: 0.8rem; color: var(--gold-light); font-weight: 700; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em;">
+            1-Click Shareable Link
+          </label>
+          <div style="display: flex; gap: 8px;">
+            <input type="text" id="shareable-url-input" readonly value="${shareUrl}" 
+                   style="flex-grow: 1; background: rgba(255,255,255,0.06); border: 1px solid var(--border-gold); border-radius: var(--radius-md); padding: 12px 14px; color: var(--gold-light); font-size: 0.88rem; font-family: monospace; outline: none;" />
+            <button id="copy-share-url-btn" class="btn-primary-gold" style="padding: 10px 18px; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px;">
+              <span>📋</span> <span id="copy-btn-text">Copy Link</span>
+            </button>
+          </div>
+          <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 6px;">
+            Anyone with this link can join directly without typing an invite code.
+          </div>
+        </div>
+
+        <!-- Social Media Fast Share Buttons -->
+        <div style="margin-bottom: 22px;">
+          <label style="display: block; font-size: 0.8rem; color: var(--gold-light); font-weight: 700; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.05em;">
+            Instant Social Sharing
+          </label>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <!-- WhatsApp Share -->
+            <button type="button" id="share-whatsapp-btn" style="background: linear-gradient(135deg, #25D366, #128C7E); border: none; border-radius: var(--radius-md); padding: 12px 16px; color: #fff; font-size: 0.92rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 15px rgba(37,211,102,0.3); transition: transform 0.2s;">
+              <span style="font-size: 1.2rem;">💬</span> WhatsApp
+            </button>
+
+            <!-- Telegram Share -->
+            <button type="button" id="share-telegram-btn" style="background: linear-gradient(135deg, #0088cc, #005580); border: none; border-radius: var(--radius-md); padding: 12px 16px; color: #fff; font-size: 0.92rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 15px rgba(0,136,204,0.3); transition: transform 0.2s;">
+              <span style="font-size: 1.2rem;">✈️</span> Telegram
+            </button>
+
+            <!-- Instagram Caption Copy -->
+            <button type="button" id="copy-instagram-caption-btn" style="background: linear-gradient(135deg, #833ab4, #fd1d1d, #fcb045); border: none; border-radius: var(--radius-md); padding: 12px 16px; color: #fff; font-size: 0.92rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 15px rgba(253,29,29,0.3); transition: transform 0.2s;">
+              <span style="font-size: 1.2rem;">📸</span> Instagram Ready
+            </button>
+
+            <!-- Native Device Share Sheet -->
+            <button type="button" id="share-native-btn" style="background: rgba(255,255,255,0.08); border: 1.5px solid var(--border-gold); border-radius: var(--radius-md); padding: 12px 16px; color: var(--gold-light); font-size: 0.92rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: background 0.2s;">
+              <span style="font-size: 1.2rem;">📱</span> More Apps...
+            </button>
+          </div>
+        </div>
+
+        <!-- Instagram / Social Caption Preview -->
+        <div style="background: rgba(255,255,255,0.04); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 12px 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">
+              Instagram / Bio Ready Text
+            </span>
+            <span style="font-size: 0.72rem; color: var(--gold-light);">Ready to paste in Story Link or DM</span>
+          </div>
+          <p style="font-size: 0.82rem; color: var(--text-secondary); line-height: 1.5; margin: 0; font-family: monospace;">
+            "${instagramCaption}"
+          </p>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; margin-top: 22px;">
+          <button id="close-share-modal-bottom-btn" class="btn-outline-glass" style="padding: 10px 24px;">
+            Close
+          </button>
+        </div>
+      </div>
+    `;
+
+    // Bind listeners
+    const close = () => modal.remove();
+    modal.querySelector("#close-share-trip-modal")?.addEventListener("click", close);
+    modal.querySelector("#close-share-modal-bottom-btn")?.addEventListener("click", close);
+    modal.addEventListener("click", (e) => { if (e.target === modal) close(); });
+
+    // Switch Role Tab (Members vs Co-Owner)
+    modal.querySelector("#share-tab-member")?.addEventListener("click", () => {
+      activeCode = trip.inviteCode;
+      activeRoleLabel = "Squad Member";
+      renderModalContent();
+    });
+
+    modal.querySelector("#share-tab-coowner")?.addEventListener("click", () => {
+      activeCode = trip.coOwnerInviteCode;
+      activeRoleLabel = "👑 2nd Co-Owner";
+      renderModalContent();
+    });
+
+    // Copy Link button
+    modal.querySelector("#copy-share-url-btn")?.addEventListener("click", () => {
+      navigator.clipboard.writeText(shareUrl);
+      const btnText = modal.querySelector("#copy-btn-text");
+      if (btnText) btnText.textContent = "Copied! ✓";
+      appState.showToast("📋 1-Click invite link copied to clipboard!");
+      setTimeout(() => { if (btnText) btnText.textContent = "Copy Link"; }, 2500);
+    });
+
+    // WhatsApp Button
+    modal.querySelector("#share-whatsapp-btn")?.addEventListener("click", () => {
+      const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(whatsappText)}`;
+      window.open(waUrl, "_blank");
+      appState.showToast("💬 Opening WhatsApp share...");
+    });
+
+    // Telegram Button
+    modal.querySelector("#share-telegram-btn")?.addEventListener("click", () => {
+      const tgUrl = `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(telegramText)}`;
+      window.open(tgUrl, "_blank");
+      appState.showToast("✈️ Opening Telegram share...");
+    });
+
+    // Copy Instagram Caption Button
+    modal.querySelector("#copy-instagram-caption-btn")?.addEventListener("click", () => {
+      navigator.clipboard.writeText(instagramCaption);
+      appState.showToast("📸 Instagram invite caption copied! Paste in Story Link or DMs.");
+    });
+
+    // Native Device Share
+    modal.querySelector("#share-native-btn")?.addEventListener("click", async () => {
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: `AuricVyom: Expedition to ${trip.destination || trip.name}`,
+            text: whatsappText,
+            url: shareUrl
+          });
+          appState.showToast("✨ Shared successfully!");
+        } catch (err) {
+          if (err.name !== "AbortError") {
+            navigator.clipboard.writeText(shareUrl);
+            appState.showToast("📋 Link copied to clipboard!");
+          }
+        }
+      } else {
+        navigator.clipboard.writeText(shareUrl);
+        appState.showToast("📋 Link copied! (Native share not supported on this device)");
+      }
+    });
+  };
+
+  renderModalContent();
+  document.body.appendChild(modal);
 }
 
 // =============================================================================

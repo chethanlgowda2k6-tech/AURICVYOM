@@ -26,7 +26,7 @@ import { renderAuthView } from "./components/AuthView.js";
 import { renderGlobalSearchModal } from "./components/GlobalSearchModal.js";
 import { renderAdminDashboardView } from "./components/AdminDashboardView.js";
 import { renderNadiaFloatingWidget } from "./components/NadiaFloatingWidget.js";
-import { renderTripCollabView } from "./components/TripCollabView.js";
+import { renderTripCollabView, renderJoinTripModal } from "./components/TripCollabView.js";
 import { renderFooter } from "./components/Footer.js";
 
 class AuricVistaApp {
@@ -57,6 +57,19 @@ class AuricVistaApp {
   }
 
   handleUrlRouting() {
+    // 1. Check for 1-click team join query parameter (?join=... or ?invite=... or #join-...)
+    const searchParams = new URLSearchParams(window.location.search);
+    const rawJoinCode = searchParams.get("join") || searchParams.get("invite") || (window.location.hash.match(/#join-([A-Za-z0-9_-]+)/i)?.[1]);
+
+    if (rawJoinCode) {
+      const cleanCode = rawJoinCode.trim().toUpperCase();
+      appState.setActiveTab("collab");
+      setTimeout(() => {
+        renderJoinTripModal(cleanCode);
+      }, 300);
+      return;
+    }
+
     const hash = window.location.hash.replace("#", "").toLowerCase();
     
     if (hash === "login") {
@@ -86,11 +99,11 @@ class AuricVistaApp {
   updateBrowserUrl(activeTab) {
     if (activeTab === "home") {
       if (window.location.hash && !["#login", "#signup", "#forgot-password", "#reset-password", "#personalization"].includes(window.location.hash)) {
-        history.replaceState(null, "", window.location.pathname);
+        history.replaceState(null, "", window.location.pathname + window.location.search);
       }
     } else if (activeTab) {
       if (window.location.hash !== `#${activeTab}`) {
-        history.replaceState(null, "", `#${activeTab}`);
+        history.replaceState(null, "", `${window.location.pathname}${window.location.search}#${activeTab}`);
       }
     }
   }

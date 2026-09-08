@@ -482,6 +482,18 @@ class StateManager {
       if (typeof resumeAction === "function") {
         setTimeout(() => resumeAction(), 200);
       }
+
+      // Check for pending invite code from shareable link
+      const pendingInviteCode = localStorage.getItem("auricvyom_pending_invite_code") || sessionStorage.getItem("auricvyom_pending_invite_code");
+      if (pendingInviteCode) {
+        localStorage.removeItem("auricvyom_pending_invite_code");
+        sessionStorage.removeItem("auricvyom_pending_invite_code");
+        setTimeout(async () => {
+          this.setActiveTab("collab");
+          await this.joinCollabTrip(pendingInviteCode);
+        }, 300);
+      }
+
       return { success: true };
     } catch (err) {
       this.setState({
@@ -526,6 +538,18 @@ class StateManager {
       });
 
       this.showToast(`🎉 Welcome to AuricVyom, ${userObject.name.split(' ')[0]}!`);
+
+      // Check for pending invite code from shareable link
+      const pendingInviteCode = localStorage.getItem("auricvyom_pending_invite_code") || sessionStorage.getItem("auricvyom_pending_invite_code");
+      if (pendingInviteCode) {
+        localStorage.removeItem("auricvyom_pending_invite_code");
+        sessionStorage.removeItem("auricvyom_pending_invite_code");
+        setTimeout(async () => {
+          this.setActiveTab("collab");
+          await this.joinCollabTrip(pendingInviteCode);
+        }, 300);
+      }
+
       return { success: true };
     } catch (err) {
       this.setState({
@@ -1333,6 +1357,17 @@ class StateManager {
       });
       const data = await res.json();
       if (data.success) {
+        if (data.data && this.state.currentCollabTrip && this.state.currentCollabTrip.id === tripId) {
+          const currentMsgs = this.state.currentCollabTrip.messages || [];
+          if (!currentMsgs.some(m => m.id === data.data.id)) {
+            this.setState({
+              currentCollabTrip: {
+                ...this.state.currentCollabTrip,
+                messages: [...currentMsgs, data.data]
+              }
+            });
+          }
+        }
         return data.data;
       }
     } catch (err) {

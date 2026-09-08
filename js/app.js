@@ -70,7 +70,16 @@ class AuricVistaApp {
     } else if (hash === "personalization") {
       appState.openAuth("personalization");
     } else if (hash && ["home", "explore", "destinations", "stays", "experiences", "transport", "flights", "packages", "planner", "journal", "dashboard", "ai_planner", "saved", "bookings", "collab", "collaborate", "team_trips"].includes(hash)) {
-      appState.setActiveTab(hash);
+      const normalizedTab = (hash === "collaborate" || hash === "team_trips") ? "collab" : hash;
+      appState.setActiveTab(normalizedTab);
+    } else {
+      const savedTrip = appState.loadFromStorage("auricvyom_cached_collab_trip", null);
+      const savedTab = appState.loadFromStorage("auricvyom_active_tab", null);
+      if (savedTrip) {
+        appState.setActiveTab("collab");
+      } else if (savedTab && savedTab !== "home") {
+        appState.setActiveTab(savedTab);
+      }
     }
   }
 
@@ -78,6 +87,10 @@ class AuricVistaApp {
     if (activeTab === "home") {
       if (window.location.hash && !["#login", "#signup", "#forgot-password", "#reset-password", "#personalization"].includes(window.location.hash)) {
         history.replaceState(null, "", window.location.pathname);
+      }
+    } else if (activeTab) {
+      if (window.location.hash !== `#${activeTab}`) {
+        history.replaceState(null, "", `#${activeTab}`);
       }
     }
   }
@@ -158,6 +171,9 @@ class AuricVistaApp {
         closeDrawer();
       });
     });
+
+    window.addEventListener("hashchange", () => this.handleUrlRouting());
+    window.addEventListener("popstate", () => this.handleUrlRouting());
 
     this.updateMobileDrawer(appState.getState());
   }

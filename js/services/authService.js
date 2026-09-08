@@ -75,7 +75,7 @@ class AuthService {
   }
 
   isAuthenticated() {
-    return !!(this.accessToken && this.currentUser);
+    return !!(this.currentUser && (this.accessToken || this.currentUser.id));
   }
 
   async register({ name, email, password, phone }) {
@@ -171,7 +171,7 @@ class AuthService {
   }
 
   async getMe() {
-    if (!this.accessToken) return null;
+    if (!this.accessToken) return this.currentUser;
 
     try {
       const res = await fetch(`${API_BASE_URL}/auth/me`, {
@@ -186,8 +186,9 @@ class AuthService {
         if (refreshed) {
           return this.getMe();
         }
-        this.clearSession();
-        return null;
+        // Maintain local user session across page refreshes; do NOT wipe session!
+        console.warn("Session token expired or unverified by backend. Preserving cached traveler session.");
+        return this.currentUser;
       }
 
       const data = await res.json();
@@ -200,7 +201,7 @@ class AuthService {
       console.warn("Error fetching /auth/me:", e);
       return this.currentUser;
     }
-    return null;
+    return this.currentUser;
   }
 
   async refreshTokens() {

@@ -112,8 +112,17 @@ class StateManager {
       { id: "hampi", name: "Hampi & Vijayanagara", type: "destination", image: "https://images.unsplash.com/photo-1590050752117-238cb0fb12b1?auto=format&fit=crop&w=800&q=80" }
     ]);
 
+    // Collaborative Trips Restoration
+    const savedActiveCollabTrip = this.loadFromStorage("auricvyom_cached_collab_trip", null);
+    const savedCollabTrips = this.loadFromStorage("auricvyom_cached_collab_trips", []);
+    const savedActiveTab = this.loadFromStorage("auricvyom_active_tab", "home");
+    const hash = typeof window !== "undefined" && window.location.hash ? window.location.hash.replace("#", "").toLowerCase() : null;
+    const initialTab = (hash && ["home", "explore", "destinations", "stays", "experiences", "transport", "flights", "packages", "planner", "journal", "dashboard", "ai_planner", "saved", "bookings", "collab", "collaborate", "team_trips"].includes(hash))
+      ? ((hash === "collaborate" || hash === "team_trips") ? "collab" : hash)
+      : (savedActiveCollabTrip ? "collab" : (savedActiveTab || "home"));
+
     this.state = {
-      activeTab: "home", // home, explore, destinations, stays, experiences, transport, flights, packages, planner, ai_planner, saved, bookings, dashboard, journal, login, signup, forgot_password, reset_password, personalization
+      activeTab: initialTab, // home, explore, destinations, stays, experiences, transport, flights, packages, planner, ai_planner, saved, bookings, dashboard, journal, login, signup, forgot_password, reset_password, personalization
       searchQuery: "",
       searchHistory: savedSearchHistory,
       selectedDestination: null,
@@ -142,8 +151,8 @@ class StateManager {
       reviews: savedReviews,
 
       // Collaborative Trips State
-      collabTrips: [],
-      currentCollabTrip: null,
+      collabTrips: savedCollabTrips,
+      currentCollabTrip: savedActiveCollabTrip,
       collabSettlement: null,
       collabLoading: false,
       activeCollabWorkspaceTab: 'itinerary', // 'itinerary', 'places', 'polls', 'expenses', 'chat'
@@ -194,6 +203,13 @@ class StateManager {
     // Asynchronously refresh user session in background
     if (this.state.isAuthenticated) {
       this.syncUserSession();
+    }
+
+    // Restore collaborative trip live details and SSE in background
+    if (savedActiveCollabTrip?.id) {
+      setTimeout(() => {
+        this.fetchCollabTripDetails(savedActiveCollabTrip.id);
+      }, 50);
     }
   }
 
@@ -275,12 +291,14 @@ class StateManager {
     const protectedTabs = ["dashboard", "saved", "bookings", "journal"];
     if (protectedTabs.includes(tabId) && !this.state.isAuthenticated) {
       this.requireAuth(tabId, () => {
+        this.saveToStorage("auricvyom_active_tab", tabId);
         this.setState({ activeTab: tabId, activeModal: null });
         window.scrollTo({ top: 0, behavior: "smooth" });
       });
       return;
     }
 
+    this.saveToStorage("auricvyom_active_tab", tabId);
     this.setState({ activeTab: tabId, activeModal: null });
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -520,9 +538,13 @@ class StateManager {
 
   async logout() {
     await authService.logout();
+    localStorage.removeItem("auricvyom_cached_collab_trip");
+    localStorage.removeItem("auricvyom_active_collab_trip_id");
+    this.closeCollabSSE();
     this.setState({
       isAuthenticated: false,
       currentUser: null,
+      currentCollabTrip: null,
       activeModal: null,
       activeTab: "home"
     });
@@ -862,6 +884,15 @@ class StateManager {
   }
 
   setCurrentCollabTrip(trip) {
+    if (trip) {
+      this.saveToStorage("auricvyom_cached_collab_trip", trip);
+      if (trip.id) {
+        localStorage.setItem("auricvyom_active_collab_trip_id", trip.id);
+      }
+    } else {
+      localStorage.removeItem("auricvyom_cached_collab_trip");
+      localStorage.removeItem("auricvyom_active_collab_trip_id");
+    }
     this.setState({ currentCollabTrip: trip });
   }
 
@@ -881,7 +912,8 @@ class StateManager {
         headers: this.getAuthHeaders()
       });
       const data = await res.json();
-      if (data.success) {
+      if (data.success && Array.isArray(data.data)) {
+        this.saveToStorage("auricvyom_cached_collab_trips", data.data);
         this.setState({ collabTrips: data.data, collabLoading: false });
         return data.data;
       }
@@ -899,19 +931,31 @@ class StateManager {
         headers: this.getAuthHeaders()
       });
       const data = await res.json();
-      if (data.success) {
+      if (data.success && data.data) {
+        this.saveToStorage("auricvyom_cached_collab_trip", data.data);
+        localStorage.setItem("auricvyom_active_collab_trip_id", tripId);
         this.setState({ currentCollabTrip: data.data });
         this.initCollabSSE(tripId);
         this.fetchCollabSettlement(tripId);
         return data.data;
       } else {
-        this.showToast(data.message || "Failed to load collaborative trip");
+        if (res.status === 401) {
+          const refreshed = await authService.refreshTokens();
+          if (refreshed) {
+            return this.fetchCollabTripDetails(tripId);
+          }
+        }
+        if (res.status === 404) {
+          localStorage.removeItem("auricvyom_cached_collab_trip");
+          localStorage.removeItem("auricvyom_active_collab_trip_id");
+          this.setState({ currentCollabTrip: null });
+        }
+        console.warn("[CollabTrips] fetchCollabTripDetails notice:", data?.message);
       }
     } catch (err) {
-      console.error("[CollabTrips] fetchCollabTripDetails error:", err);
-      this.showToast("Connection to trip server failed");
+      console.warn("[CollabTrips] fetchCollabTripDetails network issue, maintaining cached trip:", err);
     }
-    return null;
+    return this.state.currentCollabTrip;
   }
 
   async createCollabTrip(payload) {
@@ -926,6 +970,9 @@ class StateManager {
       if (data.success) {
         this.showToast("✨ Collaborative trip created! Invite code ready.");
         await this.fetchCollabTrips();
+        if (data.data?.id) {
+          await this.fetchCollabTripDetails(data.data.id);
+        }
         return data.data;
       } else {
         this.showToast(data.message || "Failed to create trip");
@@ -960,8 +1007,9 @@ class StateManager {
       if (data.success) {
         this.showToast("🎉 " + data.message);
         await this.fetchCollabTrips();
-        if (data.data?.tripId) {
-          await this.fetchCollabTripDetails(data.data.tripId);
+        const tripId = data.data?.tripId || data.data?.trip?.id || data.data?.id;
+        if (tripId) {
+          await this.fetchCollabTripDetails(tripId);
         }
         return data;
       } else {
@@ -1029,7 +1077,9 @@ class StateManager {
       });
       const data = await res.json();
       if (data.success) {
-        this.showToast(data.message);
+        this.showToast(data.message || "You have left the trip");
+        localStorage.removeItem("auricvyom_cached_collab_trip");
+        localStorage.removeItem("auricvyom_active_collab_trip_id");
         this.setState({ currentCollabTrip: null });
         this.closeCollabSSE();
         await this.fetchCollabTrips();
@@ -1055,6 +1105,7 @@ class StateManager {
       const data = await res.json();
       if (data.success) {
         this.showToast("Added to itinerary");
+        await this.fetchCollabTripDetails(tripId);
         return data.data;
       } else {
         this.showToast(data.message || "Could not add item");
@@ -1075,6 +1126,7 @@ class StateManager {
       const data = await res.json();
       if (data.success) {
         this.showToast("Itinerary item updated");
+        await this.fetchCollabTripDetails(tripId);
         return data.data;
       }
     } catch (err) {
@@ -1092,6 +1144,7 @@ class StateManager {
       const data = await res.json();
       if (data.success) {
         this.showToast("Item deleted from itinerary");
+        await this.fetchCollabTripDetails(tripId);
         return true;
       }
     } catch (err) {
@@ -1110,6 +1163,7 @@ class StateManager {
       const data = await res.json();
       if (data.success) {
         this.showToast("Place saved to shared trip");
+        await this.fetchCollabTripDetails(tripId);
         return data.data;
       }
     } catch (err) {
@@ -1127,6 +1181,7 @@ class StateManager {
       const data = await res.json();
       if (data.success) {
         this.showToast("Place removed");
+        await this.fetchCollabTripDetails(tripId);
         return true;
       }
     } catch (err) {
@@ -1145,6 +1200,7 @@ class StateManager {
       const data = await res.json();
       if (data.success) {
         this.showToast("📊 Poll created!");
+        await this.fetchCollabTripDetails(tripId);
         return data.data;
       } else {
         this.showToast(data.message || "Failed to create poll");
@@ -1164,6 +1220,7 @@ class StateManager {
       });
       const data = await res.json();
       if (data.success) {
+        await this.fetchCollabTripDetails(tripId);
         return data.data;
       }
     } catch (err) {
@@ -1181,6 +1238,7 @@ class StateManager {
       const data = await res.json();
       if (data.success) {
         this.showToast("Poll closed");
+        await this.fetchCollabTripDetails(tripId);
         return data.data;
       }
     } catch (err) {
@@ -1200,6 +1258,7 @@ class StateManager {
       if (data.success) {
         this.showToast("💰 Expense added & split computed!");
         this.fetchCollabSettlement(tripId);
+        await this.fetchCollabTripDetails(tripId);
         return data.data;
       } else {
         this.showToast(data.message || "Failed to record expense");
@@ -1221,6 +1280,7 @@ class StateManager {
       if (data.success) {
         this.showToast("Expense updated");
         this.fetchCollabSettlement(tripId);
+        await this.fetchCollabTripDetails(tripId);
         return data.data;
       }
     } catch (err) {
@@ -1239,6 +1299,7 @@ class StateManager {
       if (data.success) {
         this.showToast("Expense soft-deleted (logged in financial audit)");
         this.fetchCollabSettlement(tripId);
+        await this.fetchCollabTripDetails(tripId);
         return true;
       }
     } catch (err) {

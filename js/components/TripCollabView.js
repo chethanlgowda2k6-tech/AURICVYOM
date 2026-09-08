@@ -924,7 +924,8 @@ export function renderTripCollabView() {
     const backBtn = e.target.closest("#back-to-hub-btn");
     if (backBtn) {
       e.preventDefault();
-      appState.setState({ currentCollabTrip: null });
+      appState.closeCollabSSE();
+      appState.setCurrentCollabTrip(null);
       return;
     }
   });
@@ -932,9 +933,15 @@ export function renderTripCollabView() {
   // Subscribe to state updates
   appState.subscribe(render);
 
-  // Initial load
+  // Initial load: restore active trip details if present, or fetch trips list
   setTimeout(() => {
-    appState.fetchCollabTrips();
+    const state = appState.getState();
+    const activeTripId = state.currentCollabTrip?.id || localStorage.getItem("auricvyom_active_collab_trip_id");
+    if (activeTripId) {
+      appState.fetchCollabTripDetails(activeTripId);
+    } else {
+      appState.fetchCollabTrips();
+    }
   }, 0);
 
   return container;

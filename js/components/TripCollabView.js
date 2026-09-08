@@ -944,6 +944,7 @@ export function renderTripCollabView() {
 // MODAL 1: CREATE COLLABORATIVE TRIP MODAL
 // =============================================================================
 function renderCreateTripModal() {
+  document.querySelectorAll("#create-collab-trip-modal").forEach(el => el.remove());
   const modal = document.createElement("div");
   modal.className = "auric-modal-backdrop modal-overlay-backdrop active";
   modal.id = "create-collab-trip-modal";
@@ -1054,13 +1055,27 @@ function renderCreateTripModal() {
 
   modal.querySelector("#create-collab-trip-form")?.addEventListener("submit", async (e) => {
     e.preventDefault();
-    const name = document.getElementById("trip-name-input")?.value;
-    const destination = document.getElementById("trip-destination-select")?.value;
-    const travelersCount = Number(document.getElementById("trip-travelers-input")?.value || 1);
-    const startDate = document.getElementById("trip-start-date")?.value;
-    const endDate = document.getElementById("trip-end-date")?.value;
-    const targetBudget = document.getElementById("trip-budget-input")?.value;
-    const coOwnerEmail = document.getElementById("trip-coowner-email")?.value;
+    const form = e.target;
+    const name = form.querySelector("#trip-name-input")?.value?.trim();
+    const destination = form.querySelector("#trip-destination-select")?.value?.trim();
+    const travelersCount = Number(form.querySelector("#trip-travelers-input")?.value || 1);
+    const startDate = form.querySelector("#trip-start-date")?.value;
+    const endDate = form.querySelector("#trip-end-date")?.value;
+    const targetBudget = form.querySelector("#trip-budget-input")?.value;
+    const coOwnerEmail = form.querySelector("#trip-coowner-email")?.value?.trim();
+
+    if (!name) {
+      appState.showToast("Please enter a trip name");
+      return;
+    }
+    if (!destination) {
+      appState.showToast("Please select a destination");
+      return;
+    }
+    if (!startDate || !endDate) {
+      appState.showToast("Please select valid start and end dates");
+      return;
+    }
 
     const res = await appState.createCollabTrip({
       name,
@@ -1085,6 +1100,7 @@ function renderCreateTripModal() {
 // MODAL 2: JOIN TRIP VIA INVITE CODE
 // =============================================================================
 function renderJoinTripModal() {
+  document.querySelectorAll("#join-collab-trip-modal").forEach(el => el.remove());
   const modal = document.createElement("div");
   modal.className = "auric-modal-backdrop modal-overlay-backdrop active";
   modal.id = "join-collab-trip-modal";
@@ -1253,14 +1269,15 @@ function renderAddItineraryModal(tripId, defaultDay = 1, prefill = null) {
 
   modal.querySelector("#add-itinerary-form")?.addEventListener("submit", async (e) => {
     e.preventDefault();
-    const dayNumber = Number(document.getElementById("itin-day")?.value || 1);
-    const category = document.getElementById("itin-category")?.value;
-    const title = document.getElementById("itin-title")?.value;
-    const location = document.getElementById("itin-location")?.value;
-    const startTime = document.getElementById("itin-start-time")?.value;
-    const endTime = document.getElementById("itin-end-time")?.value;
-    const cost = document.getElementById("itin-cost")?.value;
-    const description = document.getElementById("itin-desc")?.value;
+    const form = e.target;
+    const dayNumber = Number(form.querySelector("#itin-day")?.value || 1);
+    const category = form.querySelector("#itin-category")?.value;
+    const title = form.querySelector("#itin-title")?.value?.trim();
+    const location = form.querySelector("#itin-location")?.value?.trim();
+    const startTime = form.querySelector("#itin-start-time")?.value;
+    const endTime = form.querySelector("#itin-end-time")?.value;
+    const cost = form.querySelector("#itin-cost")?.value;
+    const description = form.querySelector("#itin-desc")?.value?.trim();
 
     const res = await appState.addCollabItineraryItem(tripId, {
       dayNumber,
@@ -1347,11 +1364,12 @@ function renderAddPlaceModal(tripId) {
 
   modal.querySelector("#add-place-form")?.addEventListener("submit", async (e) => {
     e.preventDefault();
-    const name = document.getElementById("place-name")?.value;
-    const category = document.getElementById("place-category")?.value;
-    const rating = Number(document.getElementById("place-rating")?.value || 5);
-    const address = document.getElementById("place-address")?.value;
-    const notes = document.getElementById("place-notes")?.value;
+    const form = e.target;
+    const name = form.querySelector("#place-name")?.value?.trim();
+    const category = form.querySelector("#place-category")?.value;
+    const rating = Number(form.querySelector("#place-rating")?.value || 5);
+    const address = form.querySelector("#place-address")?.value?.trim();
+    const notes = form.querySelector("#place-notes")?.value?.trim();
 
     const res = await appState.addCollabSavedPlace(tripId, {
       name,
@@ -1429,7 +1447,8 @@ function renderCreatePollModal(tripId) {
 
   modal.querySelector("#create-poll-form")?.addEventListener("submit", async (e) => {
     e.preventDefault();
-    const question = document.getElementById("poll-question")?.value;
+    const form = e.target;
+    const question = form.querySelector("#poll-question")?.value?.trim();
     const optionInputs = modal.querySelectorAll(".poll-option-input");
     const options = Array.from(optionInputs).map(inp => inp.value.trim()).filter(Boolean);
 
@@ -1514,9 +1533,10 @@ function renderAddExpenseModal(tripId, members = []) {
 
   modal.querySelector("#add-expense-form")?.addEventListener("submit", async (e) => {
     e.preventDefault();
-    const amount = Number(document.getElementById("exp-amount")?.value || 0);
-    const category = document.getElementById("exp-category")?.value;
-    const description = document.getElementById("exp-desc")?.value;
+    const form = e.target;
+    const amount = Number(form.querySelector("#exp-amount")?.value || 0);
+    const category = form.querySelector("#exp-category")?.value;
+    const description = form.querySelector("#exp-desc")?.value?.trim();
     const checked = modal.querySelectorAll(".exp-member-split:checked");
     const splitBetweenMemberIds = Array.from(checked).map(c => c.value);
 

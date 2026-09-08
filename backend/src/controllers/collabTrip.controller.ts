@@ -54,11 +54,17 @@ export const createTrip = async (req: CollabTripRequest, res: Response) => {
       coverImage
     } = req.body;
 
-    if (!name || !destination || !startDate || !endDate || travelersCount === undefined) {
-      return res.status(400).json({
-        success: false,
-        message: 'Missing required fields: name, destination, startDate, endDate, travelersCount'
-      });
+    if (!name || typeof name !== 'string' || !name.trim()) {
+      return res.status(400).json({ success: false, message: 'Trip Name is required' });
+    }
+    if (!destination || typeof destination !== 'string' || !destination.trim()) {
+      return res.status(400).json({ success: false, message: 'Destination is required' });
+    }
+    if (!startDate) {
+      return res.status(400).json({ success: false, message: 'Start date is required' });
+    }
+    if (!endDate) {
+      return res.status(400).json({ success: false, message: 'End date is required' });
     }
 
     const start = new Date(startDate);
@@ -67,7 +73,7 @@ export const createTrip = async (req: CollabTripRequest, res: Response) => {
       return res.status(400).json({ success: false, message: 'Invalid start or end date format' });
     }
 
-    if (start > end) {
+    if (start.getTime() > end.getTime()) {
       return res.status(400).json({ success: false, message: 'Start date cannot be after end date' });
     }
 

@@ -38,9 +38,9 @@ export function renderTripCollabView() {
         <div class="content-container section-spacing" style="padding-top: 100px; text-align: center;">
           <div style="background: var(--bg-card); border: 1.5px solid var(--border-gold); border-radius: var(--radius-lg); padding: 60px 32px; max-width: 600px; margin: 0 auto; box-shadow: var(--shadow-lg);">
             <div style="font-size: 3rem; margin-bottom: 16px;">👑</div>
-            <span class="section-tag-gold">COLLABORATIVE EXPEDITIONS</span>
+            <span class="section-tag-gold">VYOMTOGETHER</span>
             <h2 style="font-family: var(--font-serif); font-size: 2.2rem; color: var(--text-white); margin-top: 12px; margin-bottom: 16px;">
-              Plan Together, Travel Bespoke
+              VyomTogether — Plan Together, Travel Bespoke
             </h2>
             <p style="color: var(--text-secondary); line-height: 1.7; margin-bottom: 32px;">
               Sign in to your AuricVyom account to create shared journeys, invite co-owners via unique codes, vote on palace visits, and split luxury stays seamlessly.
@@ -66,9 +66,9 @@ export function renderTripCollabView() {
           <!-- Hero Header -->
           <div style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 24px; margin-bottom: 40px;">
             <div>
-              <span class="section-tag-gold">TEAM-BASED TRIP COLLABORATION</span>
+              <span class="section-tag-gold">VYOMTOGETHER COLLABORATION</span>
               <h1 class="section-main-title" style="margin-top: 8px;">
-                Shared Journeys Workspace
+                VyomTogether Workspace
               </h1>
               <p style="color: var(--text-secondary); font-size: 1.1rem; max-width: 650px; margin-top: 8px;">
                 Turn solo itineraries into real-time collaborative luxury expeditions with unique invite codes, two co-owners, shared day timelines, group polls, and split billing.
@@ -79,7 +79,7 @@ export function renderTripCollabView() {
                 🔑 Join with Link or Code
               </button>
               <button class="btn-primary-gold" id="open-create-trip-modal-btn" style="padding: 12px 28px; font-size: 0.95rem;">
-                ✨ Create Shared Journey
+                ✨ Create VyomTogether Trip
               </button>
             </div>
           </div>
@@ -88,7 +88,7 @@ export function renderTripCollabView() {
           ${collabLoading ? `
             <div style="padding: 80px 0; text-align: center; color: var(--gold-light);">
               <div class="spinner" style="margin: 0 auto 16px;"></div>
-              <p>Loading your collaborative journeys...</p>
+              <p>Loading your VyomTogether journeys...</p>
             </div>
           ` : collabTrips && collabTrips.length > 0 ? `
             <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr)); gap: 28px;">
@@ -159,14 +159,14 @@ export function renderTripCollabView() {
             <div style="background: var(--bg-card); border: 1px dashed var(--border-gold); border-radius: var(--radius-lg); padding: 80px 24px; text-align: center; max-width: 700px; margin: 0 auto;">
               <div style="font-size: 3rem; margin-bottom: 16px;">🗺️</div>
               <h3 style="font-family: var(--font-serif); font-size: 1.8rem; color: var(--text-white); margin-bottom: 12px;">
-                No Collaborative Trips Yet
+                No VyomTogether Journeys Yet
               </h3>
               <p style="color: var(--text-secondary); max-width: 500px; margin: 0 auto 28px; line-height: 1.7;">
                 Start planning your next getaway with co-owners, friends, or family. Or join an existing squad using their unique invite code.
               </p>
               <div style="display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
                 <button class="btn-primary-gold" id="empty-create-trip-btn" style="padding: 12px 28px;">
-                  ✨ Create Collaborative Trip
+                  ✨ Create VyomTogether Trip
                 </button>
                 <button class="btn-outline-glass" id="empty-join-trip-btn" style="padding: 12px 24px;">
                   🔑 Join with Link or Code
@@ -224,7 +224,7 @@ export function renderTripCollabView() {
         <!-- Top Back Bar -->
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
           <button id="back-to-hub-btn" class="btn-outline-glass" style="padding: 8px 18px; font-size: 0.88rem; gap: 8px;">
-            ← All Collaborative Trips
+            ← All VyomTogether Trips
           </button>
           
           <div style="display: flex; gap: 12px; align-items: center;">
@@ -1223,7 +1223,7 @@ function renderCreateTripModal() {
     <div class="modal-window-container" style="max-width: 620px; padding: 32px;" id="create-trip-modal-window">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
         <h3 style="font-family: var(--font-serif); font-size: 1.6rem; color: var(--text-white);">
-          Create Collaborative Trip
+          Create VyomTogether Trip
         </h3>
         <button id="close-create-trip-modal" style="background: none; border: none; font-size: 1.5rem; color: #fff; cursor: pointer;">✕</button>
       </div>
@@ -1376,7 +1376,7 @@ export function renderJoinTripModal(prefillCode = "") {
           <span style="font-size: 1.6rem;">🔑</span>
           <div>
             <h3 style="font-family: var(--font-serif); font-size: 1.45rem; color: var(--text-white); margin: 0;">
-              Join Collaborative Journey
+              Join VyomTogether Journey
             </h3>
             <div style="font-size: 0.78rem; color: var(--gold-light); margin-top: 2px;">
               Join with 1-click link or unique invite code
@@ -1530,9 +1530,9 @@ export function renderShareTripModal(trip) {
     const destination = trip.destination || "India";
     const duration = trip.durationDays || 5;
 
-    const whatsappText = `✨ Join our luxury expedition to ${destination} on AuricVyom! ✈️🏰\n\n📌 Journey: ${tripTitle} (${duration} Days)\n👑 Role: ${roleLabel}\n\n👉 Click here to join our squad directly:\n${shareUrl}`;
-    const telegramText = `Join our luxury expedition to ${destination} on AuricVyom! ✈️🏰 (${tripTitle})`;
-    const instagramCaption = `Pack your bags! You're invited to our collaborative expedition to ${destination} on AuricVyom. Tap the link to join our squad: ${shareUrl} ✈️🏰`;
+    const whatsappText = `✨ Join our luxury VyomTogether expedition to ${destination} on AuricVyom! ✈️🏰\n\n📌 Journey: ${tripTitle} (${duration} Days)\n👑 Role: ${roleLabel}\n\n👉 Click here to join our squad directly:\n${shareUrl}`;
+    const telegramText = `Join our luxury VyomTogether expedition to ${destination} on AuricVyom! ✈️🏰 (${tripTitle})`;
+    const instagramCaption = `Pack your bags! You're invited to our VyomTogether expedition to ${destination} on AuricVyom. Tap the link to join our squad: ${shareUrl} ✈️🏰`;
 
     return { shareUrl, whatsappText, telegramText, instagramCaption };
   };

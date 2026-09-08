@@ -64,7 +64,7 @@ export function renderUserDashboardView() {
             🗺️ My Trips (${savedTripPlans.length})
           </button>
           <button class="filter-pill-btn" id="dash-collab-pill-btn" style="background: rgba(212,175,55,0.12); border-color: var(--gold-primary); color: var(--gold-light);">
-            👥 Collaborative Journeys ✨
+            👥 VyomTogether ✨
           </button>
           <button class="filter-pill-btn ${activeDashboardTab === 'bookings' ? 'active' : ''}" data-dtab="bookings">
             🎟️ Bookings & Passes (${bookings.length})
@@ -158,7 +158,7 @@ function renderTabPane(tab, savedTripPlans, bookings, wishlist, userStories, rec
           <h3 style="font-family: var(--font-serif); font-size: 1.4rem; color: var(--text-white);">My Planned Itineraries</h3>
           <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
             <button class="btn-outline-gold" onclick="appState.setActiveTab('collab')" style="padding: 8px 18px; font-size: 0.85rem;">
-              👥 Team Trips & Squads
+              👥 VyomTogether Trips
             </button>
             <button class="btn-primary-gold" onclick="appState.setActiveTab('planner')" style="padding: 8px 18px; font-size: 0.85rem;">
               ＋ Plan Solo Itinerary

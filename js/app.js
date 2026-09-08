@@ -82,8 +82,8 @@ class AuricVistaApp {
       appState.openAuth("reset");
     } else if (hash === "personalization") {
       appState.openAuth("personalization");
-    } else if (hash && ["home", "explore", "destinations", "stays", "experiences", "transport", "flights", "packages", "planner", "journal", "dashboard", "ai_planner", "saved", "bookings", "collab", "collaborate", "team_trips"].includes(hash)) {
-      const normalizedTab = (hash === "collaborate" || hash === "team_trips") ? "collab" : hash;
+    } else if (hash && ["home", "explore", "destinations", "stays", "experiences", "transport", "flights", "packages", "planner", "journal", "dashboard", "ai_planner", "saved", "bookings", "collab", "collaborate", "team_trips", "vyomtogether", "together"].includes(hash)) {
+      const normalizedTab = (hash === "collaborate" || hash === "team_trips" || hash === "vyomtogether" || hash === "together") ? "collab" : hash;
       appState.setActiveTab(normalizedTab);
     } else {
       const savedTrip = appState.loadFromStorage("auricvyom_cached_collab_trip", null);
@@ -143,7 +143,7 @@ class AuricVistaApp {
           <button class="nav-link-btn" data-nav="packages" style="text-align: left; font-size: 1.05rem; min-height: 44px; display: flex; align-items: center;">Holidays</button>
           <button class="nav-link-btn" data-nav="explore" style="text-align: left; font-size: 1.05rem; min-height: 44px; display: flex; align-items: center;">Explore India</button>
           <button class="nav-link-btn" data-nav="bookings" style="text-align: left; font-size: 1.05rem; min-height: 44px; display: flex; align-items: center;">My Trips</button>
-          <button class="nav-link-btn" data-nav="collab" style="text-align: left; font-size: 1.05rem; min-height: 44px; display: flex; align-items: center; color: var(--gold-light);">👥 Collaborative Trips</button>
+          <button class="nav-link-btn" data-nav="collab" style="text-align: left; font-size: 1.05rem; min-height: 44px; display: flex; align-items: center; color: var(--gold-light);">👥 VyomTogether</button>
           <button class="nav-link-btn" data-nav="planner" style="text-align: left; font-size: 1.05rem; min-height: 44px; display: flex; align-items: center;">Trip Planner Studio</button>
           <button class="nav-link-btn" data-nav="dashboard" style="text-align: left; font-size: 1.05rem; min-height: 44px; display: flex; align-items: center;">My Dashboard</button>
           <div id="mobile-drawer-auth-btn-wrap" style="margin-top: 8px;"></div>

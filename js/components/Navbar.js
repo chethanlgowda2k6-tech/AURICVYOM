@@ -61,7 +61,7 @@ export function renderNavbar() {
         </li>
         <li>
           <button class="nav-link-btn ${activeTab === 'collab' ? 'active' : ''}" data-tab="collab" style="color: var(--gold-light);">
-            👥 Team Trips
+            👥 VyomTogether
           </button>
         </li>
       </ul>
@@ -125,8 +125,8 @@ export function renderNavbar() {
                   <span>My Profile & Dashboard</span>
                 </button>
                 <button class="dropdown-item-btn" data-action="collab">
-                  <span class="item-icon">👥</span>
-                  <span>Collaborative Journeys</span>
+                  <span class="dropdown-icon">👥</span>
+                  <span>VyomTogether Journeys</span>
                 </button>
                 <button class="dropdown-item-btn" data-action="saved">
                   <span class="item-icon">❤️</span>

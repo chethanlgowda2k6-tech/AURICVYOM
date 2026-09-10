@@ -9,6 +9,7 @@ export type TripEventType =
   | 'POLL_CREATED'
   | 'POLL_VOTED'
   | 'POLL_CLOSED'
+  | 'POLL_AUTO_RESOLVED'
   | 'EXPENSE_ADDED'
   | 'EXPENSE_UPDATED'
   | 'EXPENSE_DELETED'
@@ -17,7 +18,9 @@ export type TripEventType =
   | 'MEMBER_REMOVED'
   | 'MEMBER_LEFT'
   | 'NEW_CHAT_MESSAGE'
-  | 'TRIP_UPDATED';
+  | 'TRIP_UPDATED'
+  | 'EMERGENCY_SOS'
+  | 'AUTOMATION_DISPATCH';
 
 class TripSyncService {
   private activeConnections: Map<string, Set<Response>> = new Map();

@@ -16,7 +16,9 @@ import adminRoutes from './routes/admin.routes';
 import analyticsRoutes from './routes/analytics.routes';
 import assistantRoutes from './routes/assistant.routes';
 import collabTripRoutes from './routes/collabTrip.routes';
+import automationRoutes from './routes/automation.routes';
 import { notificationScheduler } from './services/notificationScheduler.service';
+import { automationEngine } from './services/automationEngine.service';
 
 const app = express();
 const PORT = process.env.PORT || 5001;
@@ -43,6 +45,7 @@ app.use(`${API_PREFIX}/admin`, adminRoutes);
 app.use(`${API_PREFIX}/analytics`, analyticsRoutes);
 app.use(`${API_PREFIX}/assistant`, assistantRoutes);
 app.use(`${API_PREFIX}/trips`, collabTripRoutes);
+app.use(`${API_PREFIX}/automations`, automationRoutes);
 
 // Health Check
 app.get(`${API_PREFIX}/health`, (req, res) => {
@@ -54,4 +57,5 @@ app.listen(PORT, () => {
   console.log(`🚀 Server is running on port ${PORT}`);
   console.log(`🔗 API Base URL: http://localhost:${PORT}${API_PREFIX}`);
   notificationScheduler.startScheduler();
+  automationEngine.start();
 });

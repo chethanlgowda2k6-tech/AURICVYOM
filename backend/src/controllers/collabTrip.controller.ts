@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import prisma from '../utils/prisma';
 import { CollabTripRequest } from '../middleware/tripAuth';
 import { tripSyncService } from '../services/tripSync.service';
+import { automationEngine } from '../services/automationEngine.service';
 import { TripRole } from '@prisma/client';
 
 /**
@@ -509,6 +510,7 @@ export const joinTrip = async (req: CollabTripRequest, res: Response) => {
     });
 
     tripSyncService.broadcast(trip.id, 'MEMBER_JOINED', newMember);
+    automationEngine.dispatchWelcomeKit(trip.id, userId).catch(console.error);
 
     res.status(201).json({
       success: true,
@@ -930,6 +932,7 @@ export const votePoll = async (req: CollabTripRequest, res: Response) => {
     });
 
     tripSyncService.broadcast(tripId, 'POLL_VOTED', updatedPoll);
+    automationEngine.checkAndResolveExpiredPolls().catch(console.error);
     res.json({ success: true, data: updatedPoll });
   } catch (error) {
     console.error('[CollabTrip] votePoll error:', error);

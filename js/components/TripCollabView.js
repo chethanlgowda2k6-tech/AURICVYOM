@@ -13,6 +13,7 @@ import {
   checkTimelineConflict,
   findMatchingLandmarks
 } from "../services/itineraryTimingService.js";
+import { automationService } from "../services/automationService.js";
 
 export function renderTripCollabView() {
   const container = document.createElement("div");
@@ -283,6 +284,19 @@ export function renderTripCollabView() {
                     </button>
                   </div>
                 ` : ''}
+
+                <!-- Intelligent Automation & Concierge Controls -->
+                <button id="open-automations-modal-btn" class="btn-automation-glass pulse-gold" style="padding: 8px 16px; font-size: 0.85rem;" title="View Intelligent Automation Status">
+                  <span>⚡</span> Automations
+                </button>
+
+                <button id="trigger-sos-btn" class="btn-danger-glass pulse-sos" style="padding: 8px 16px; font-size: 0.85rem;" title="1-Click Emergency SOS with Live Coordinates">
+                  <span>🚨</span> SOS Emergency
+                </button>
+
+                <button id="export-journal-btn" class="btn-outline-glass" style="padding: 8px 16px; font-size: 0.85rem; border-color: var(--border-gold); color: var(--gold-light); display: inline-flex; align-items: center; gap: 6px;" title="Export Printable Digital Memory Journal & Itinerary">
+                  <span>📄</span> Memory Journal
+                </button>
               </div>
             </div>
 
@@ -575,13 +589,22 @@ export function renderTripCollabView() {
                 <div style="background: var(--bg-card); border: 1.5px solid var(--border-gold); border-radius: var(--radius-lg); padding: 24px; box-shadow: var(--shadow-md);">
                   <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px;">
                     <div>
-                      <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 6px;">
+                      <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 6px; flex-wrap: wrap;">
                         <span style="background: ${isClosed ? 'rgba(255,255,255,0.08)' : 'rgba(16,185,129,0.15)'}; border: 1px solid ${isClosed ? 'var(--border-subtle)' : '#10b981'}; color: ${isClosed ? 'var(--text-muted)' : '#10b981'}; font-size: 0.72rem; font-weight: 700; padding: 2px 10px; border-radius: var(--radius-full);">
                           ${isClosed ? 'CLOSED' : 'ACTIVE POLL'}
                         </span>
                         <span style="font-size: 0.8rem; color: var(--text-secondary);">
                           Created by ${poll.createdBy?.name || 'Owner'}
                         </span>
+                        ${!isClosed ? `
+                          <span style="background: rgba(212,175,55,0.12); border: 1px solid var(--border-gold); color: var(--gold-light); font-size: 0.72rem; font-weight: 700; padding: 2px 10px; border-radius: var(--radius-full); display: inline-flex; align-items: center; gap: 4px;">
+                            ⚡ Auto-resolves & schedules winner
+                          </span>
+                        ` : `
+                          <span style="background: rgba(212,175,55,0.2); border: 1px solid var(--gold-primary); color: var(--gold-light); font-size: 0.72rem; font-weight: 700; padding: 2px 10px; border-radius: var(--radius-full); display: inline-flex; align-items: center; gap: 4px;">
+                            🏆 Auto-scheduled on itinerary
+                          </span>
+                        `}
                       </div>
                       <h4 style="font-family: var(--font-serif); font-size: 1.3rem; color: var(--text-white);">
                         ${poll.question}
@@ -721,9 +744,14 @@ export function renderTripCollabView() {
                 Mathematical net-debt simplification algorithm resolving who owes whom with the minimum number of payments.
               </p>
             </div>
-            <button class="btn-outline-glass" id="refresh-settlement-btn" style="padding: 6px 12px; font-size: 0.8rem;">
-              🔄 Refresh Matrix
-            </button>
+            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+              <button class="btn-outline-glass" id="send-settlement-reminders-btn" style="padding: 6px 14px; font-size: 0.8rem; border-color: var(--border-gold); color: var(--gold-light);" title="Send automated WhatsApp balance statements">
+                📱 Send WhatsApp Reminders
+              </button>
+              <button class="btn-outline-glass" id="refresh-settlement-btn" style="padding: 6px 12px; font-size: 0.8rem;">
+                🔄 Refresh Matrix
+              </button>
+            </div>
           </div>
 
           ${settlements.length > 0 ? `
@@ -1150,6 +1178,58 @@ export function renderTripCollabView() {
       e.stopPropagation();
       const currentTrip = appState.getState().currentCollabTrip;
       if (currentTrip) renderShareTripModal(currentTrip);
+      return;
+    }
+
+    const autoBtn = e.target.closest("#open-automations-modal-btn");
+    if (autoBtn) {
+      e.preventDefault();
+      e.stopPropagation();
+      const currentTrip = appState.getState().currentCollabTrip;
+      if (currentTrip) renderAutomationsModal(currentTrip);
+      return;
+    }
+
+    const sosBtn = e.target.closest("#trigger-sos-btn");
+    if (sosBtn) {
+      e.preventDefault();
+      e.stopPropagation();
+      const currentTrip = appState.getState().currentCollabTrip;
+      if (currentTrip) {
+        if (confirm(`🚨 BROADCAST EMERGENCY SOS?\n\nThis will capture your live GPS coordinates and send an immediate distress alert to all squad members and AuricVyom 24/7 Concierge Desk.`)) {
+          appState.showToast("Capturing GPS coordinates & alerting squad...", 4000);
+          automationService.triggerSOS(currentTrip.id).then(res => {
+            if (res.success) {
+              appState.showToast("🚨 Emergency SOS dispatched! Desk & squad notified.", 6000);
+            } else {
+              appState.showToast(res.message || "Failed to dispatch SOS");
+            }
+          });
+        }
+      }
+      return;
+    }
+
+    const journalBtn = e.target.closest("#export-journal-btn");
+    if (journalBtn) {
+      e.preventDefault();
+      e.stopPropagation();
+      const currentTrip = appState.getState().currentCollabTrip;
+      if (currentTrip) {
+        automationService.openPrintableMemoryJournal(currentTrip);
+      }
+      return;
+    }
+
+    const remindBtn = e.target.closest("#send-settlement-reminders-btn");
+    if (remindBtn) {
+      e.preventDefault();
+      e.stopPropagation();
+      const currentTrip = appState.getState().currentCollabTrip;
+      if (currentTrip) {
+        appState.showToast("Dispatching settlement reminders via WhatsApp...", 3000);
+        appState.triggerSettlementReminders(currentTrip.id);
+      }
       return;
     }
 
@@ -2731,3 +2811,220 @@ function renderManageSquadModal(trip) {
     }
   });
 }
+
+// =============================================================================
+// MODAL 6: INTELLIGENT AUTOMATIONS DASHBOARD & CONTROLS
+// =============================================================================
+export function renderAutomationsModal(trip) {
+  document.querySelectorAll("#automations-collab-modal").forEach(el => el.remove());
+  const modal = document.createElement("div");
+  modal.className = "auric-modal-backdrop modal-overlay-backdrop active";
+  modal.id = "automations-collab-modal";
+
+  modal.innerHTML = `
+    <div class="modal-window-container" style="max-width: 680px; padding: 32px; max-height: 90vh; overflow-y: auto;" id="automations-modal-window">
+      <!-- Modal Header -->
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 16px;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <span style="font-size: 2rem;">⚡</span>
+          <div>
+            <h3 style="font-family: var(--font-serif); font-size: 1.45rem; color: var(--text-white); margin: 0;">
+              VyomTogether Automation Engine
+            </h3>
+            <div style="font-size: 0.78rem; color: var(--gold-light); margin-top: 2px;">
+              Intelligent Background Concierge, Watchdogs & Omnichannel Sync
+            </div>
+          </div>
+        </div>
+        <button id="close-automations-modal" style="background: none; border: none; font-size: 1.5rem; color: #fff; cursor: pointer;">✕</button>
+      </div>
+
+      <!-- Trip Summary Banner -->
+      <div style="background: rgba(8,12,20,0.85); border: 1px solid var(--border-gold); border-radius: var(--radius-md); padding: 14px 18px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+        <div>
+          <span style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em;">Monitoring Journey</span>
+          <div style="font-family: var(--font-serif); font-size: 1.15rem; color: var(--text-white);">${trip.name}</div>
+          <div style="font-size: 0.8rem; color: var(--gold-light);">📍 ${trip.destination} • 👥 ${trip.members?.length || 0} Squad Members</div>
+        </div>
+        <div style="text-align: right;">
+          <span style="background: rgba(16,185,129,0.15); border: 1px solid #10b981; color: #10b981; font-size: 0.75rem; font-weight: 700; padding: 4px 12px; border-radius: var(--radius-full); display: inline-flex; align-items: center; gap: 6px;">
+            <span style="width: 7px; height: 7px; border-radius: 50%; background: #10b981;"></span>
+            SYSTEMS OPERATIONAL
+          </span>
+        </div>
+      </div>
+
+      <!-- Automation Cards Stack -->
+      <div style="display: flex; flex-direction: column; gap: 16px;">
+
+        <!-- 1. Morning Concierge Briefing -->
+        <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 20px;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; flex-wrap: wrap; gap: 10px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span style="font-size: 1.4rem;">🌅</span>
+              <div>
+                <h4 style="font-size: 1.05rem; color: var(--text-white); margin: 0; font-weight: 600;">Daily 08:00 AM IST Morning Briefing</h4>
+                <span style="font-size: 0.75rem; color: #10b981; font-weight: 600;">Active Concierge Clock (Every 08:00 AM IST)</span>
+              </div>
+            </div>
+            <button id="trigger-briefing-now-btn" class="btn-outline-glass" style="padding: 6px 14px; font-size: 0.78rem; border-color: var(--border-gold); color: var(--gold-light);">
+              Preview / Dispatch Now
+            </button>
+          </div>
+          <p style="color: var(--text-secondary); font-size: 0.85rem; line-height: 1.5; margin: 0;">
+            Compiles today's curated schedule, weather forecast (26°C), and operating hours. Dispatches personalized WhatsApp briefings to all squad members every morning.
+          </p>
+        </div>
+
+        <!-- 2. Poll Auto-Resolution -->
+        <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 20px;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; flex-wrap: wrap; gap: 10px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span style="font-size: 1.4rem;">📊</span>
+              <div>
+                <h4 style="font-size: 1.05rem; color: var(--text-white); margin: 0; font-weight: 600;">Poll Auto-Resolution & Timeline Insertion</h4>
+                <span style="font-size: 0.75rem; color: #06b6d4; font-weight: 600;">Active Watchdog (Checks on every vote & 2 min)</span>
+              </div>
+            </div>
+            <button id="trigger-poll-check-btn" class="btn-outline-glass" style="padding: 6px 14px; font-size: 0.78rem;">
+              Check Polls Now
+            </button>
+          </div>
+          <p style="color: var(--text-secondary); font-size: 0.85rem; line-height: 1.5; margin: 0;">
+            Monitors active polls. When 100% of squad members vote or 24 hours expire, the winning option is automatically declared, the poll is closed, and the activity is slotted onto the shared itinerary!
+          </p>
+        </div>
+
+        <!-- 3. Emergency SOS & Concierge Desk -->
+        <div style="background: var(--bg-card); border: 1px solid rgba(244,63,94,0.35); border-radius: var(--radius-md); padding: 20px;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; flex-wrap: wrap; gap: 10px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span style="font-size: 1.4rem;">🚨</span>
+              <div>
+                <h4 style="font-size: 1.05rem; color: #fff; margin: 0; font-weight: 600;">1-Click Emergency SOS & Concierge Escalation</h4>
+                <span style="font-size: 0.75rem; color: #f43f5e; font-weight: 600;">Armed & Geolocation Ready</span>
+              </div>
+            </div>
+            <button id="modal-trigger-sos-btn" class="btn-danger-glass" style="padding: 6px 14px; font-size: 0.78rem;">
+              🚨 Trigger SOS
+            </button>
+          </div>
+          <p style="color: var(--text-secondary); font-size: 0.85rem; line-height: 1.5; margin: 0;">
+            Captures high-accuracy GPS coordinates via browser geolocation and broadcasts high-priority alerts across WhatsApp, SMS, and SSE. Alerts AuricVyom 24/7 Concierge Desk.
+          </p>
+        </div>
+
+        <!-- 4. Room Hold Watchdog -->
+        <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 20px;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; flex-wrap: wrap; gap: 10px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span style="font-size: 1.4rem;">🧹</span>
+              <div>
+                <h4 style="font-size: 1.05rem; color: var(--text-white); margin: 0; font-weight: 600;">10-Minute Cart Lock & Auto-Release Watchdog</h4>
+                <span style="font-size: 0.75rem; color: var(--gold-light); font-weight: 600;">Running (60s Sweep Interval)</span>
+              </div>
+            </div>
+            <span style="font-size: 0.78rem; color: #10b981; font-family: monospace; font-weight: 600;">● SWEEP ACTIVE</span>
+          </div>
+          <p style="color: var(--text-secondary); font-size: 0.85rem; line-height: 1.5; margin: 0;">
+            Prevents phantom villa bookings. Automatically cleans up expired RoomHold records and unlocks luxury suites for other travelers.
+          </p>
+        </div>
+
+        <!-- 5. Expense Settlement & Memory Journal -->
+        <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 20px;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; flex-wrap: wrap; gap: 10px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span style="font-size: 1.4rem;">🧾</span>
+              <div>
+                <h4 style="font-size: 1.05rem; color: var(--text-white); margin: 0; font-weight: 600;">Post-Trip Debt Matrix & Printable Journal</h4>
+                <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">Ready for Settlement</span>
+              </div>
+            </div>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+              <button id="modal-send-settlement-btn" class="btn-outline-glass" style="padding: 6px 12px; font-size: 0.78rem; border-color: var(--border-gold); color: var(--gold-light);">
+                Send WhatsApp Reminders
+              </button>
+              <button id="modal-export-journal-btn" class="btn-outline-glass" style="padding: 6px 12px; font-size: 0.78rem;">
+                Export Journal PDF
+              </button>
+            </div>
+          </div>
+          <p style="color: var(--text-secondary); font-size: 0.85rem; line-height: 1.5; margin: 0;">
+            Reconciles net balances among squad members with 1-click WhatsApp payment reminders and generates a keepsake digital memory voucher.
+          </p>
+        </div>
+
+      </div>
+
+      <!-- Footer Done Button -->
+      <div style="margin-top: 24px; text-align: right;">
+        <button id="close-automations-done-btn" class="btn-primary-gold" style="padding: 10px 24px; font-size: 0.9rem;">
+          Done
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  const close = () => modal.remove();
+  modal.addEventListener("click", (e) => { if (e.target === modal) close(); });
+  modal.querySelector("#close-automations-modal")?.addEventListener("click", close);
+  modal.querySelector("#close-automations-done-btn")?.addEventListener("click", close);
+
+  // Trigger Morning Briefing
+  modal.querySelector("#trigger-briefing-now-btn")?.addEventListener("click", async () => {
+    appState.showToast("Generating and previewing Morning Briefing...", 3000);
+    const res = await automationService.triggerMorningBriefing(trip.id);
+    if (res.success) {
+      appState.showToast("🌅 Morning Briefing dispatched to squad via WhatsApp!", 5000);
+    } else {
+      appState.showToast(res.message || "Failed to generate briefing");
+    }
+  });
+
+  // Trigger Poll Check
+  modal.querySelector("#trigger-poll-check-btn")?.addEventListener("click", async () => {
+    appState.showToast("Checking polls for auto-resolution...", 2000);
+    try {
+      const res = await fetch(`${window.AURICVYOM_API_BASE || "http://localhost:5001/api/v1"}/automations/check-polls`, {
+        method: "POST",
+        headers: appState.getAuthHeaders()
+      });
+      const data = await res.json();
+      if (data.success) {
+        const count = data.data?.resolvedPolls?.length || 0;
+        appState.showToast(count > 0 ? `🏆 ${count} poll(s) auto-resolved and slotted into itinerary!` : "All polls are up-to-date.");
+        appState.fetchCollabTripDetails(trip.id);
+      }
+    } catch(err) {
+      appState.showToast("Error checking polls");
+    }
+  });
+
+  // Trigger SOS from modal
+  modal.querySelector("#modal-trigger-sos-btn")?.addEventListener("click", async () => {
+    if (confirm("🚨 BROADCAST EMERGENCY SOS?\n\nThis will capture your live GPS coordinates and send an immediate distress alert to all squad members and AuricVyom 24/7 Concierge Desk.")) {
+      appState.showToast("Capturing GPS coordinates & alerting squad...", 4000);
+      const res = await automationService.triggerSOS(trip.id);
+      if (res.success) {
+        appState.showToast("🚨 Emergency SOS dispatched! Desk & squad notified.", 6000);
+      } else {
+        appState.showToast(res.message || "Failed to dispatch SOS");
+      }
+    }
+  });
+
+  // Send settlement reminders from modal
+  modal.querySelector("#modal-send-settlement-btn")?.addEventListener("click", async () => {
+    appState.showToast("Dispatching settlement reminders via WhatsApp...", 3000);
+    await appState.triggerSettlementReminders(trip.id);
+  });
+
+  // Export journal from modal
+  modal.querySelector("#modal-export-journal-btn")?.addEventListener("click", () => {
+    automationService.openPrintableMemoryJournal(trip);
+  });
+}
+

@@ -1408,6 +1408,29 @@ class StateManager {
       this.collabEventSource.addEventListener("MEMBER_LEFT", refreshTrip);
       this.collabEventSource.addEventListener("TRIP_UPDATED", refreshTrip);
 
+      this.collabEventSource.addEventListener("POLL_AUTO_RESOLVED", (e) => {
+        refreshTrip();
+        try {
+          const parsed = JSON.parse(e.data);
+          const winnerText = parsed.payload?.winningOption?.text || "activity";
+          this.showToast(`🏆 Poll auto-resolved: "${winnerText}" added to itinerary!`);
+        } catch (err) {}
+      });
+
+      this.collabEventSource.addEventListener("EMERGENCY_SOS", (e) => {
+        refreshTrip();
+        try {
+          const parsed = JSON.parse(e.data);
+          const name = parsed.payload?.emitterName || "Squad Member";
+          this.showToast(`🚨 URGENT: ${name} triggered an Emergency SOS! Concierge Desk Alerted.`, 8000);
+        } catch (err) {}
+      });
+
+      this.collabEventSource.addEventListener("AUTOMATION_DISPATCH", (e) => {
+        refreshTrip();
+        this.showToast("🌅 Morning Squad Concierge Briefing dispatched to WhatsApp!");
+      });
+
       this.collabEventSource.addEventListener("NEW_CHAT_MESSAGE", (e) => {
         try {
           const parsed = JSON.parse(e.data);
@@ -1431,6 +1454,74 @@ class StateManager {
       };
     } catch (err) {
       console.warn("[CollabTrips] SSE connection error:", err);
+    }
+  }
+
+  async triggerCollabSOS(tripId, locationData = {}) {
+    try {
+      const apiBase = window.AURICVYOM_API_BASE || "http://localhost:5001/api/v1";
+      const res = await fetch(`${apiBase}/automations/trips/${tripId}/sos`, {
+        method: "POST",
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify(locationData)
+      });
+      const data = await res.json();
+      if (data.success) {
+        this.showToast("🚨 Emergency SOS broadcast to squad & 24/7 Concierge Desk", 5000);
+      } else {
+        this.showToast(data.message || "Failed to broadcast SOS");
+      }
+      return data;
+    } catch (err) {
+      this.showToast("Network error broadcasting SOS");
+    }
+  }
+
+  async fetchTripAutomationStatus(tripId) {
+    try {
+      const apiBase = window.AURICVYOM_API_BASE || "http://localhost:5001/api/v1";
+      const res = await fetch(`${apiBase}/automations/trips/${tripId}/status`, {
+        headers: this.getAuthHeaders()
+      });
+      const data = await res.json();
+      return data.success ? data.data : null;
+    } catch (err) {
+      console.warn("[CollabTrips] fetchTripAutomationStatus error:", err);
+      return null;
+    }
+  }
+
+  async triggerMorningBriefing(tripId) {
+    try {
+      const apiBase = window.AURICVYOM_API_BASE || "http://localhost:5001/api/v1";
+      const res = await fetch(`${apiBase}/automations/trips/${tripId}/morning-briefing`, {
+        method: "POST",
+        headers: this.getAuthHeaders()
+      });
+      const data = await res.json();
+      if (data.success) {
+        this.showToast("🌅 Morning Concierge Briefing dispatched!");
+      }
+      return data;
+    } catch (err) {
+      this.showToast("Failed to dispatch morning briefing");
+    }
+  }
+
+  async triggerSettlementReminders(tripId) {
+    try {
+      const apiBase = window.AURICVYOM_API_BASE || "http://localhost:5001/api/v1";
+      const res = await fetch(`${apiBase}/automations/trips/${tripId}/settlement-reminders`, {
+        method: "POST",
+        headers: this.getAuthHeaders()
+      });
+      const data = await res.json();
+      if (data.success) {
+        this.showToast("🧾 Settlement reminders dispatched via WhatsApp!");
+      }
+      return data;
+    } catch (err) {
+      this.showToast("Failed to dispatch settlement reminders");
     }
   }
 

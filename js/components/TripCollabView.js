@@ -313,7 +313,7 @@ export function renderTripCollabView() {
                       <div style="display: flex; align-items: center; gap: 10px;">
                         <img src="${m.user?.profileImage || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80'}" style="width: 28px; height: 28px; border-radius: 50%; object-fit: cover; border: 1.5px solid ${isCoOwner ? 'var(--gold-primary)' : 'rgba(255,255,255,0.2)'};" />
                         <span style="font-size: 0.88rem; color: var(--text-white); font-weight: ${isCoOwner ? '700' : '400'};">
-                          ${m.user?.name} ${m.userId === currentUser.id ? '(You)' : ''}
+                          ${m.user?.name} ${currentUser && m.userId === currentUser.id ? '(You)' : ''}
                         </span>
                       </div>
                       <span style="font-size: 0.75rem; font-weight: 700; color: ${isCoOwner ? 'var(--gold-light)' : 'var(--text-muted)'};">
@@ -623,7 +623,7 @@ export function renderTripCollabView() {
                     ${poll.options.map(opt => {
                       const voteCount = (opt.votes || []).length;
                       const percentage = totalVotes > 0 ? Math.round((voteCount / totalVotes) * 100) : 0;
-                      const hasVoted = (opt.votes || []).some(v => v.userId === currentUser.id);
+                      const hasVoted = (opt.votes || []).some(v => v.userId === currentUser?.id);
 
                       return `
                         <div class="poll-option-row ${hasVoted ? 'voted' : ''}" data-poll-id="${poll.id}" data-option-id="${opt.id}" style="background: rgba(8,12,20,0.85); border: 1.5px solid ${hasVoted ? 'var(--gold-primary)' : 'var(--border-subtle)'}; border-radius: var(--radius-md); padding: 14px 18px; cursor: ${isClosed ? 'default' : 'pointer'}; position: relative; overflow: hidden; transition: border-color 0.2s;">
@@ -902,7 +902,7 @@ export function renderTripCollabView() {
           <!-- Message History Container -->
           <div id="collab-chat-messages" style="flex-grow: 1; padding: 24px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; scroll-behavior: smooth; background: radial-gradient(circle at 50% 0%, rgba(212,175,55,0.03), transparent 70%);">
             ${messages.length > 0 ? messages.map(msg => {
-              const isMine = msg.senderId === currentUser.id;
+              const isMine = currentUser && msg.senderId === currentUser.id;
               const senderMember = members.find(m => m.userId === msg.senderId);
               const isSenderOwner = senderMember?.role === 'OWNER';
               

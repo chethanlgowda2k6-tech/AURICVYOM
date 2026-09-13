@@ -22,22 +22,31 @@ export function renderUserDashboardView() {
       savedPaymentMethods 
     } = appState.getState();
 
-    const userStories = travelStories.filter(s => s.author === currentUser.name || s.author.includes("Chethan"));
+    const user = currentUser || {
+      name: "Guest Explorer",
+      email: "guest@auricvyom.com",
+      phone: "+91 98801 23456",
+      tier: "Auric Explorer",
+      avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80",
+      loyaltyPoints: 0
+    };
+
+    const userStories = travelStories.filter(s => s.author === user.name || s.author.includes("Chethan"));
 
     section.innerHTML = `
       <div class="content-container">
         <!-- User Profile Hero Banner -->
         <div style="background: var(--bg-card); border: 1.5px solid var(--border-gold); border-radius: var(--radius-lg); padding: 32px; margin-bottom: 36px; box-shadow: var(--shadow-lg); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 24px;">
           <div style="display: flex; gap: 20px; align-items: center;">
-            <img src="${currentUser.avatar}" alt="${currentUser.name}" style="width: 80px; height: 80px; border-radius: 50%; border: 2px solid var(--gold-primary); object-fit: cover;" />
+            <img src="${user.avatar}" alt="${user.name}" style="width: 80px; height: 80px; border-radius: 50%; border: 2px solid var(--gold-primary); object-fit: cover;" />
             <div>
               <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 4px;">
-                <h2 style="font-family: var(--font-serif); font-size: 1.8rem; color: var(--text-white);">${currentUser.name}</h2>
+                <h2 style="font-family: var(--font-serif); font-size: 1.8rem; color: var(--text-white);">${user.name}</h2>
                 <span class="badge-state-pill" style="font-size: 0.7rem; background: rgba(212,175,55,0.2); border-color: var(--gold-primary); color: var(--gold-light);">
-                  👑 ${currentUser.tier}
+                  👑 ${user.tier}
                 </span>
               </div>
-              <p style="font-size: 0.88rem; color: var(--text-secondary);">${currentUser.email} • ${currentUser.phone}</p>
+              <p style="font-size: 0.88rem; color: var(--text-secondary);">${user.email} • ${user.phone}</p>
             </div>
           </div>
 
@@ -45,7 +54,7 @@ export function renderUserDashboardView() {
           <div class="dashboard-stats-grid">
             <div style="padding: 10px 20px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); border-radius: var(--radius-md);">
               <span style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Auric Points</span>
-              <div style="font-size: 1.3rem; font-weight: 800; color: var(--gold-primary);">${currentUser.loyaltyPoints.toLocaleString()}</div>
+              <div style="font-size: 1.3rem; font-weight: 800; color: var(--gold-primary);">${user.loyaltyPoints.toLocaleString()}</div>
             </div>
             <div style="padding: 10px 20px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); border-radius: var(--radius-md);">
               <span style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Trips Built</span>
@@ -324,8 +333,8 @@ function renderTabPane(tab, savedTripPlans, bookings, wishlist, userStories, rec
         <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 24px;">
           <h4 style="font-family: var(--font-serif); font-size: 1.2rem; color: var(--gold-light); margin-bottom: 16px;">Traveler Preferences</h4>
           <div style="display: flex; flex-direction: column; gap: 10px; font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 24px;">
-            <div><strong>Registered WhatsApp:</strong> ${currentUser.phone || '+91 98801 23456'}</div>
-            <div><strong>Primary Gmail:</strong> ${currentUser.email}</div>
+            <div><strong>Registered WhatsApp:</strong> ${user.phone || '+91 98801 23456'}</div>
+            <div><strong>Primary Gmail:</strong> ${user.email}</div>
             <div><strong>Preferred Currency:</strong> ₹ INR (Indian Rupee)</div>
             <div><strong>Travel Style:</strong> Luxury & Nature Highlands</div>
             <div><strong>Dietary:</strong> Gourmet & Vedic Vegetarian</div>
@@ -345,7 +354,7 @@ function renderTabPane(tab, savedTripPlans, bookings, wishlist, userStories, rec
                 <h4 style="font-family: var(--font-serif); font-size: 1.3rem; color: var(--text-white); margin: 0;">3x Daily WhatsApp & Gmail Sanctuary Inspiration</h4>
               </div>
               <p style="font-size: 0.88rem; color: var(--text-secondary); margin: 0;">
-                Receive personalized palace recommendations, private villa alerts, and booking invitations delivered directly to your WhatsApp (${currentUser.phone || '+91 98801 23456'}) and Gmail (${currentUser.email}) three times every day.
+                Receive personalized palace recommendations, private villa alerts, and booking invitations delivered directly to your WhatsApp (${user.phone || '+91 98801 23456'}) and Gmail (${user.email}) three times every day.
               </p>
             </div>
 

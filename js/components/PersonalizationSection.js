@@ -21,15 +21,18 @@ export function renderPersonalizationSection() {
       d.name !== likedDest && (d.category === "Nature" || d.category === "Culture")
     ).slice(0, 3);
 
+    const userName = currentUser?.name ? currentUser.name.toUpperCase() : "DISCERNING TRAVELERS";
+    const travelStyle = activeTripPlan?.travelStyle || "Luxury & Nature";
+
     section.innerHTML = `
       <div class="content-container">
         <!-- Section Header -->
         <div class="section-header-block">
           <div>
-            <span class="section-tag-gold">✨ CURATED FOR ${currentUser.name.toUpperCase()}</span>
+            <span class="section-tag-gold">✨ CURATED FOR ${userName}</span>
             <h2 class="section-main-title">Personalized Escapes & Inspiration</h2>
             <p class="section-desc-muted">
-              Tailored recommendations crafted from your travel history, wishlist choices, and active ${activeTripPlan.travelStyle} escape.
+              Tailored recommendations crafted from your travel history, wishlist choices, and active ${travelStyle} escape.
             </p>
           </div>
 
@@ -92,6 +95,7 @@ export function renderPersonalizationSection() {
   };
 
   appState.subscribe(() => {
+    if (!section.isConnected) return;
     renderContent();
   });
 

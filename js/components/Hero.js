@@ -393,9 +393,13 @@ export function renderHero() {
   // Explore button action
   heroContainer.querySelector("#hero-explore-btn")?.addEventListener("click", () => {
     const current = INDIAN_STATE_CAPITALS[currentIndex];
-    appState.setState({ searchQuery: current.city, activeTab: "destinations" });
+    appState.setState({ searchQuery: current.city });
     const target = document.getElementById("destinations-section");
-    if (target) target.scrollIntoView({ behavior: "smooth" });
+    if (target) {
+      target.scrollIntoView({ behavior: "smooth" });
+    } else {
+      appState.setActiveTab("destinations");
+    }
   });
 
   // Plan Itinerary Action

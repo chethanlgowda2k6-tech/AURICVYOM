@@ -205,6 +205,7 @@ export function renderDestinationsView() {
   };
 
   appState.subscribe(() => {
+    if (!section.isConnected) return;
     renderContent();
   });
 

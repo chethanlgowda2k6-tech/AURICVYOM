@@ -1287,6 +1287,57 @@ img {
   font-family: var(--font-sans);
 }
 
+/* Horizontal Carousels Base / Desktop */
+.horizontal-carousel-track,
+.horizontal-swipe-row {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  gap: 20px;
+  padding: 8px 4px 20px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-gold) transparent;
+}
+
+.horizontal-carousel-track::-webkit-scrollbar,
+.horizontal-swipe-row::-webkit-scrollbar {
+  height: 6px;
+}
+
+.horizontal-carousel-track::-webkit-scrollbar-thumb,
+.horizontal-swipe-row::-webkit-scrollbar-thumb {
+  background: var(--border-gold);
+  border-radius: var(--radius-full);
+}
+
+.carousel-card-wrapper {
+  flex-shrink: 0;
+  min-width: 320px;
+  max-width: 340px;
+  scroll-snap-align: start;
+}
+
+.carousel-nav-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-full);
+  background: var(--bg-card);
+  border: 1px solid var(--border-gold);
+  color: var(--gold-light);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.carousel-nav-btn:hover {
+  background: var(--gold-primary);
+  color: #07090e;
+}
+
 /* Modals */
 .auric-modal-backdrop,
 .modal-overlay-backdrop {

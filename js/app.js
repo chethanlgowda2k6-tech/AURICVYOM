@@ -86,13 +86,7 @@ class AuricVistaApp {
       const normalizedTab = (hash === "collaborate" || hash === "team_trips" || hash === "vyomtogether" || hash === "together") ? "collab" : hash;
       appState.setActiveTab(normalizedTab);
     } else {
-      const savedTrip = appState.loadFromStorage("auricvyom_cached_collab_trip", null);
-      const savedTab = appState.loadFromStorage("auricvyom_active_tab", null);
-      if (savedTrip) {
-        appState.setActiveTab("collab");
-      } else if (savedTab && savedTab !== "home") {
-        appState.setActiveTab(savedTab);
-      }
+      appState.setActiveTab("home");
     }
   }
 
@@ -260,7 +254,10 @@ class AuricVistaApp {
       // 2. Dynamic Personalization (Recommended for you, Because you liked...)
       mainMount.appendChild(renderPersonalizationSection());
 
-      // 3. Explore Karnataka & Trending India & Weekend Getaways & Hidden Gems (Explore India Hub)
+      // 3. Curated Escapes & Sanctuaries (Destination Cards Discovery Grid)
+      mainMount.appendChild(renderDestinationsView());
+
+      // 4. Explore Karnataka & Trending India & Weekend Getaways & Hidden Gems (Explore India Hub)
       mainMount.appendChild(renderExploreIndiaView());
 
       // 4. Popular Stays

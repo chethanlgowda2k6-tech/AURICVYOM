@@ -14,6 +14,9 @@ export function renderStaysView() {
   let selectedAmenities = urlParams.get("amenities") ? urlParams.get("amenities").split(",") : [];
 
   const syncUrlParams = () => {
+    // Only synchronize hash and query params when viewing the dedicated Stays tab
+    if (appState.getState().activeTab !== "stays") return;
+
     const params = new URLSearchParams();
     if (searchDest.trim()) params.set("dest", searchDest.trim());
     if (selectedCategory !== "all") params.set("type", selectedCategory);

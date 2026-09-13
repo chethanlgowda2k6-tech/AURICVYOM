@@ -117,9 +117,9 @@ class StateManager {
     const savedCollabTrips = this.loadFromStorage("auricvyom_cached_collab_trips", []);
     const savedActiveTab = this.loadFromStorage("auricvyom_active_tab", "home");
     const hash = typeof window !== "undefined" && window.location.hash ? window.location.hash.replace("#", "").toLowerCase() : null;
-    const initialTab = (hash && ["home", "explore", "destinations", "stays", "experiences", "transport", "flights", "packages", "planner", "journal", "dashboard", "ai_planner", "saved", "bookings", "collab", "collaborate", "team_trips"].includes(hash))
-      ? ((hash === "collaborate" || hash === "team_trips") ? "collab" : hash)
-      : (savedActiveCollabTrip ? "collab" : (savedActiveTab || "home"));
+    const initialTab = (hash && ["home", "explore", "destinations", "stays", "experiences", "transport", "flights", "packages", "planner", "journal", "dashboard", "ai_planner", "saved", "bookings", "collab", "collaborate", "team_trips", "vyomtogether", "together"].includes(hash))
+      ? ((hash === "collaborate" || hash === "team_trips" || hash === "vyomtogether" || hash === "together") ? "collab" : hash)
+      : "home";
 
     this.state = {
       activeTab: initialTab, // home, explore, destinations, stays, experiences, transport, flights, packages, planner, ai_planner, saved, bookings, dashboard, journal, login, signup, forgot_password, reset_password, personalization
